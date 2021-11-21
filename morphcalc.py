@@ -27,7 +27,7 @@ class Snake:
     def setName(self, name):
         self.name = name
 
-    # Add a morph to this snake
+    # Add a morph to this snake (input a new instance of a morph)
     def addMorph(self, morph):
         self.morphs.append(morph)
 
@@ -35,7 +35,7 @@ class Snake:
     def removeMorph(self, morph):
         self.morphs.remove(morph)
 
-    # Returns a string of all morphs on this snake, separated by commas
+    # Returns a string of all morph names on this snake, separated by commas
     def getMorphList(self):
         return morphs.getMorphNamesOnly(self.morphs)
 

@@ -23,7 +23,9 @@ def punnett(a, b):
         for e in product(*([''.join(e) for e in product(*e)]
             for e in zip(allele(a), allele(b))))]
 
-# Test code:
+
+
+########### Test code ###########
 
 # p1 = "AaBb"
 # p2 = "AaBb"

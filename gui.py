@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter import ttk
 from tkinter import messagebox
 from PIL import ImageTk,Image
 import morphs
@@ -13,7 +14,7 @@ root.title("Corn Snake Morph Calculator")
 root.iconbitmap("favicon.ico")
 
 ### Need this for server connections
-HEADER = 64
+HEADER = 1024
 PORT = 12345
 FORMAT = 'utf-8'
 SERVER = 'localhost'
@@ -21,11 +22,26 @@ ADDR = (SERVER, PORT)
 
 morph_names = morphs.getMorphNamesOnly(morphs.allMorphs)
 
-# Tracks if user is logged in or not
-loggedIn = False
-userToken = 999999
+loggedIn = False        # tracks user login state
+username = ""
+user_snakes = {}
 current_row1 = 5
 current_row2 = 5
+
+
+#################### Socket Connections ####################
+
+# This is used for connecting to the user account server
+# Returns 1 if there's an error connecting
+def connect_to_server():
+    try:
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.connect(ADDR)
+        print(f"Client connected to {SERVER} on port {PORT}")
+    except:
+        client = 1
+
+    return client
 
 # This function formats a message to send to a server,
 # letting it know how long of a message to expect first
@@ -38,7 +54,20 @@ def send(client, msg):
     client.send(send_length)
     client.send(message)
 
-#################### First create objects ####################
+# This function waits for a response from the server and
+# returns the response (as a string)
+def receive(client):
+    msg_len = int(client.recv(HEADER).decode())
+    response = client.recv(msg_len).decode()
+
+    return response
+
+# This disconnects from the server
+def disconnect_server(conn):
+    conn.close()
+
+
+#################### Create GUI objects ####################
 
 ##### Frames #####
 menuFrame = LabelFrame(root, padx=50, pady=5, borderwidth=0, highlightthickness=0)
@@ -49,7 +78,48 @@ collectionFrame = LabelFrame(root)
 loginFrame = LabelFrame(root)
 logoutFrame = LabelFrame(root)
 
-##### Menu buttons #####
+# This is used for constructing a scrollbox within the Glossary frame
+# Code adapted from:
+# https://bytes.com/topic/python/answers/157174-how-get-scrollregion-adjust-w-window-size
+def build_scrollframe():
+    # Create canvas and scrollbar
+    canv = Canvas(glossaryFrame, height=650, width=400)
+    vsb = Scrollbar(glossaryFrame, orient="v", command=canv.yview)
+    canv.configure(yscrollcommand=vsb.set)
+
+    glossaryFrame.grid_rowconfigure(0, weight=1)
+    glossaryFrame.grid_columnconfigure(0, weight=1)
+
+    # Determine scroll area
+    canv.configure(scrollregion=(0, 0, 300, 12800))
+
+    y = 100             # y is the location on canvas to place something
+    global image_ref    # image_ref maintains references to our images
+    image_ref = []
+
+    # Add all the morphs to the canvas
+    for i in morphs.allMorphs:
+        path = i.getImageLoc()
+        img = Image.open(path)
+        img = img.resize((390,290), Image.ANTIALIAS)
+        pimg = ImageTk.PhotoImage(img)
+        image_ref.append(pimg)
+        canv.create_image((0,y), anchor=W, image=pimg)
+
+        name = i.getName().capitalize()
+        canv.create_text((0,y+170), anchor=W, text=name, font=('Arial', '18', 'bold'))
+
+        desc = i.getDescription()
+        canv.create_text((0,y+200), anchor=W, text=desc, width=390)
+
+        y = y + 400
+
+    # Place the canvas and scrollbar
+    canv.grid(row=1, column=0, sticky="nsew")
+    vsb.grid(row=1, column=1, sticky="ns")
+
+
+##### Menu Navigation Buttons #####
 def go_home():
     build_login_frame(0)
 
@@ -63,6 +133,8 @@ def go_glossary():
     build_login_frame(0)
 
     calcFrame.grid_remove()
+    resultsFrame.grid_remove()
+    res_clear.grid_forget()
     collectionFrame.grid_remove()
     loginFrame.grid_remove()
     logoutFrame.grid_remove()
@@ -73,6 +145,8 @@ def go_collection():
     clear_frame(collectionFrame, 0)
 
     calcFrame.grid_remove()
+    resultsFrame.grid_remove()
+    res_clear.grid_forget()
     glossaryFrame.grid_remove()
     loginFrame.grid_remove()
     logoutFrame.grid_remove()
@@ -84,6 +158,8 @@ def go_login():
     build_login_frame(0)
 
     calcFrame.grid_remove()
+    resultsFrame.grid_remove()
+    res_clear.grid_forget()
     collectionFrame.grid_remove()
     glossaryFrame.grid_remove()
     logoutFrame.grid_remove()
@@ -93,6 +169,8 @@ def go_logout():
     build_login_frame(0)
 
     calcFrame.grid_remove()
+    resultsFrame.grid_remove()
+    res_clear.grid_forget()
     collectionFrame.grid_remove()
     loginFrame.grid_remove()
     glossaryFrame.grid_remove()
@@ -102,21 +180,6 @@ def go_logout():
 def clear_login_entry():
     un.delete(0, END)
     pw.delete(0, END)
-
-# This is used for connecting to the user account server
-def connect_to_server():
-    try:
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect(ADDR)
-        print(f"Client connected to {SERVER} on port {PORT}")
-    except:
-        client = 1
-
-    return client
-
-# This disconnects from the server
-def disconnect_server(conn):
-    conn.close()
 
 # This can be used to clear a frame, 0 for forget, 1 for detroy
 def clear_frame(frame, setting):
@@ -196,7 +259,21 @@ def temp_create_process(username, pw):
     else:
         build_login_frame(1, "Could not connect to server.")
 
-# This function verifies login attempts
+# This function attempts to create an account with username and password
+def create_login(user, pw):
+    client = connect_to_server()
+
+    # If server connection is valid...
+    if client != 1:
+
+        # CHECK LOGIN
+
+        disconnect_server(client)
+    # Server ran into an error...
+    else:
+        build_login_frame(1, "Could not connect to server.")
+
+# This function attempts to log in with username and password
 def submit_login(user, pw):
     client = connect_to_server()
 
@@ -207,20 +284,6 @@ def submit_login(user, pw):
 
         # IF successful...
         # ELIF not successful...
-
-        disconnect_server(client)
-    # Server ran into an error...
-    else:
-        build_login_frame(1, "Could not connect to server.")
-
-# This function verifies account creation attempts
-def create_login(user, pw):
-    client = connect_to_server()
-
-    # If server connection is valid...
-    if client != 1:
-
-        # CHECK LOGIN
 
         disconnect_server(client)
     # Server ran into an error...
@@ -277,8 +340,8 @@ def logout():
     logoutFrame.grid_remove()
     loginFrame.grid(row=1, column=0)
 
-# Snake is the snake, morph is morph name, het is true/false, column is 1 for parent 1 or 2 for parent 2
-def addMorph(snake, morph, het, column):
+# Snake is the snake object, morph is morph name, het is true/false, column is 1 for parent 1 or 2 for parent 2
+def addMorphToCalc(snake, morph, het, column):
     # Look up inheritance
     inherit = ""
 
@@ -336,11 +399,11 @@ selected1.set(morph_names[0])
 het1 = IntVar()
 hetCheck1 = Checkbutton(calcFrame, text="Het", variable=het1)
 p1_morphs = OptionMenu(calcFrame, selected1, *morph_names)
-add1 = Button(calcFrame, text="Add", padx=40, command=lambda: addMorph(morphcalc.p1, selected1.get(), het1.get(), 1))
+add1 = Button(calcFrame, text="Add", padx=40, command=lambda: addMorphToCalc(morphcalc.p1, selected1.get(), het1.get(), 1))
 selected2 = StringVar()
 selected2.set(morph_names[0])
 p2_morphs = OptionMenu(calcFrame, selected2, *morph_names)
-add2 = Button(calcFrame, text="Add", padx=40, command=lambda: addMorph(morphcalc.p2, selected2.get(), het2.get(), 2))
+add2 = Button(calcFrame, text="Add", padx=40, command=lambda: addMorphToCalc(morphcalc.p2, selected2.get(), het2.get(), 2))
 het2 = IntVar()
 hetCheck2 = Checkbutton(calcFrame, text="Het", variable=het2)
 calculate = Button(calcFrame, text="Calculate Results", padx=40, pady=10, command=calculate_results)
@@ -411,16 +474,8 @@ p1_label.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
 p2_label.grid(row=4, column=2, columnspan=2, padx=10, pady=10)
 
 # Glossary frame
-title_glossary.pack()
-normal_img_label.pack()
-normal_title.pack()
-normal_description.pack()
-amel_img_label.pack()
-amel_title.pack()
-amel_description.pack()
-anery_img_label.pack()
-anery_title.pack()
-anery_description.pack()
+title_glossary.grid(row=0, column=0)
+build_scrollframe()
 
 # Collection frame
 title_collection.pack()
@@ -435,4 +490,10 @@ yes.grid(row=2, column=0)
 no.grid(row=2, column=1)
 
 ### This runs the GUI
-root.mainloop()
+# root.mainloop()
+
+client = connect_to_server()
+send(client, '{"action": "create", "username": "Bobby", "password": "123", "description": "Bobbing around"}')
+response = receive(client)
+print(f"Response: {response}")
+disconnect_server(client)
