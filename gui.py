@@ -1,6 +1,4 @@
 from tkinter import *
-from tkinter import ttk
-from tkinter import messagebox
 from PIL import ImageTk,Image
 import morphs
 import morphcalc
@@ -20,16 +18,24 @@ FORMAT = 'utf-8'
 SERVER = 'localhost'
 ADDR = (SERVER, PORT)
 
+# A list of all morph names (strings)
 morph_names = morphs.getMorphNamesOnly(morphs.allMorphs)
 
 loggedIn = False        # tracks user login state
-username = ""
-user_snakes = {}
-current_row1 = 5
-current_row2 = 5
+username = ""           # holds username info
+user_snakes = {}        # holds user's custom list of snakes
 
+# These numbers are used for placement of morphs on the calculator page
+p1_row = 5
+p2_row = 5
 
-#################### Socket Connections ####################
+# These are used for storing morph info to add custom snakes
+temp_row = 0
+temp_morphs = []
+temp_labels = []
+temp_buttons = []
+
+############################### Socket Connections ###############################
 
 # This is used for connecting to the user account server
 # Returns 1 if there's an error connecting
@@ -43,11 +49,13 @@ def connect_to_server():
 
     return client
 
-# This function formats a message to send to a server,
+# This function formats a dict to send to a server,
 # letting it know how long of a message to expect first
-def send(client, msg):
+def send(client, dict):
+    dict = json.dumps(dict)
+
     # Encode the message and get its length
-    message = msg.encode(FORMAT)
+    message = dict.encode(FORMAT)
     msg_length = len(message)                                   # msg_length is an int
     send_length = str(msg_length).encode(FORMAT)                # send_length turns msg_length to a str and encodes it
     send_length += b' ' * (HEADER - len(send_length))
@@ -67,16 +75,74 @@ def disconnect_server(conn):
     conn.close()
 
 
-#################### Create GUI objects ####################
+############################## Commands and Functions ###############################
 
-##### Frames #####
-menuFrame = LabelFrame(root, padx=50, pady=5, borderwidth=0, highlightthickness=0)
-calcFrame = LabelFrame(root, width=100, height=100)
-resultsFrame = LabelFrame(root, text="Results")
-glossaryFrame = LabelFrame(root)
-collectionFrame = LabelFrame(root)
-loginFrame = LabelFrame(root)
-logoutFrame = LabelFrame(root)
+
+######## Menu Navigation Buttons ########
+
+# Navigate to home page (calculator)
+def go_home():
+    build_login_frame(0)
+
+    glossaryFrame.grid_remove()
+    collectionFrame.grid_remove()
+    loginFrame.grid_remove()
+    logoutFrame.grid_remove()
+    calcFrame.grid(row=1, column=0)
+
+# Navigate to glossary page
+def go_glossary():
+    build_login_frame(0)
+
+    calcFrame.grid_remove()
+    resultsFrame.grid_remove()
+    res_clear.grid_forget()
+    collectionFrame.grid_remove()
+    loginFrame.grid_remove()
+    logoutFrame.grid_remove()
+    glossaryFrame.grid(row=1, column=0)
+
+# Navigate to collection page
+def go_collection():
+    build_login_frame(0)
+    clear_frame(collectionFrame, 0)
+
+    calcFrame.grid_remove()
+    resultsFrame.grid_remove()
+    res_clear.grid_forget()
+    glossaryFrame.grid_remove()
+    loginFrame.grid_remove()
+    logoutFrame.grid_remove()
+    collectionFrame.grid(row=1, column=0)
+
+    # snakesLabel.pack()
+
+# Navigate to login page
+def go_login():
+    build_login_frame(0)
+
+    calcFrame.grid_remove()
+    resultsFrame.grid_remove()
+    res_clear.grid_forget()
+    collectionFrame.grid_remove()
+    glossaryFrame.grid_remove()
+    logoutFrame.grid_remove()
+    loginFrame.grid(row=1, column=0)
+
+# Navigate to logout page
+def go_logout():
+    build_login_frame(0)
+
+    calcFrame.grid_remove()
+    resultsFrame.grid_remove()
+    res_clear.grid_forget()
+    collectionFrame.grid_remove()
+    loginFrame.grid_remove()
+    glossaryFrame.grid_remove()
+    logoutFrame.grid(row=1, column=0)
+
+
+######## Glossary Construction ########
 
 # This is used for constructing a scrollbox within the Glossary frame
 # Code adapted from:
@@ -119,67 +185,320 @@ def build_scrollframe():
     vsb.grid(row=1, column=1, sticky="ns")
 
 
-##### Menu Navigation Buttons #####
-def go_home():
-    build_login_frame(0)
+######## Collection Construction ########
 
-    glossaryFrame.grid_remove()
-    collectionFrame.grid_remove()
-    loginFrame.grid_remove()
-    logoutFrame.grid_remove()
-    calcFrame.grid(row=1, column=0)
+# This builds the frame within the collection page, with an option to display errors
+def build_newSnake_frame(error, str=""):
+    warning = Label(newSnakeFrame, text="Error: " + str, fg="red")
+    clear_login_entry()
 
-def go_glossary():
-    build_login_frame(0)
+    # If there's no error, build the standard newSnakeFrame frame:
+    if error == 0:
+        clear_frame(newSnakeFrame, 0)
+        add_snake_title.grid(row=0, column=0, padx=10, pady=10, columnspan=4)
+        add_snake_name.grid(row=1, column=0)
+        as_name.grid(row=1, column=1, columnspan=3)
+        add_snake_morph.grid(row=2, column=0, pady=10)
+        add_snake_menu.grid(row=2, column=1)
+        hetCheck3.grid(row=2, column=2)
+        add3.grid(row=2, column=3)
+        add_snake_morph_list.grid(row=3, column=0)
+        newSnakeMorphList.grid(row=3, column=1, pady=10, columnspan=3)
+        add_snake_list_empty.grid(row=0, column=0)
+        save_snake.grid(row=4, column=0, padx=10, pady=10, columnspan=4)
+    # Builds the frame with an error message from str parameter
+    elif error == 1:
+        clear_frame(newSnakeFrame, 0)
+        add_snake_title.grid(row=0, column=0, padx=10, pady=10, columnspan=4)
+        warning.grid(row=1, column=0, columnspan=4)
+        add_snake_name.grid(row=2, column=0)
+        as_name.grid(row=2, column=1, columnspan=3)
+        add_snake_morph.grid(row=3, column=0, pady=10)
+        add_snake_menu.grid(row=3, column=1)
+        hetCheck3.grid(row=3, column=2)
+        add3.grid(row=3, column=3)
+        add_snake_morph_list.grid(row=4, column=0)
+        newSnakeMorphList.grid(row=4, column=1, pady=10, columnspan=3)
+        add_snake_list_empty.grid(row=0, column=0)
+        save_snake.grid(row=5, column=0, padx=10, pady=10, columnspan=4)
 
-    calcFrame.grid_remove()
-    resultsFrame.grid_remove()
-    res_clear.grid_forget()
-    collectionFrame.grid_remove()
-    loginFrame.grid_remove()
-    logoutFrame.grid_remove()
-    glossaryFrame.grid(row=1, column=0)
+# Store chosen morphs while creating new snake
+def store_morph(name, het):
+    global temp_morphs
+    global temp_labels
+    global temp_buttons
+    global temp_row
 
-def go_collection():
-    build_login_frame(0)
-    clear_frame(collectionFrame, 0)
+    # Fill in any empty spots in the list before adding new ones
+    if "none" in temp_morphs:
+        current_index = temp_morphs.index("none")
+    else:
+        current_index = temp_row
 
-    calcFrame.grid_remove()
-    resultsFrame.grid_remove()
-    res_clear.grid_forget()
-    glossaryFrame.grid_remove()
-    loginFrame.grid_remove()
-    logoutFrame.grid_remove()
-    collectionFrame.grid(row=1, column=0)
+    # Store morph info for later
+    if het == 0:
+        temp_morphs.insert(current_index, name)
+    elif het == 1:
+        name = "het " + name
+        temp_morphs.insert(current_index, name)
 
-    snakesLabel.pack()
+    # Display the chosen morph
+    add_snake_list_empty.grid_forget()
+    new_morph_label = Label(newSnakeMorphList, text=name)
+    new_morph_label.grid(row=temp_row, column=0, columnspan=2)
+    temp_labels.insert(current_index, new_morph_label)
 
-def go_login():
-    build_login_frame(0)
+    # Add the option to remove it later
+    remove_morph_button = Button(newSnakeMorphList, text="X Remove", font=('Arial', 8), command=lambda: remove_stored_morph(current_index))
+    remove_morph_button.grid(row=temp_row, column=2)
+    temp_buttons.insert(current_index, remove_morph_button)
 
-    calcFrame.grid_remove()
-    resultsFrame.grid_remove()
-    res_clear.grid_forget()
-    collectionFrame.grid_remove()
-    glossaryFrame.grid_remove()
-    logoutFrame.grid_remove()
-    loginFrame.grid(row=1, column=0)
+    # Increment current row for display
+    temp_row = temp_row + 1
 
-def go_logout():
-    build_login_frame(0)
+# This function removes stored morphs while selecting to save a new snake
+def remove_stored_morph(index):
+    global temp_morphs
+    global temp_labels
+    global temp_buttons
+    global temp_row
 
-    calcFrame.grid_remove()
-    resultsFrame.grid_remove()
-    res_clear.grid_forget()
-    collectionFrame.grid_remove()
-    loginFrame.grid_remove()
-    glossaryFrame.grid_remove()
-    logoutFrame.grid(row=1, column=0)
+    # Remove morph at index
+    temp_morphs[index] = "none"
+    temp_labels[index].grid_forget()
+    temp_buttons[index].grid_forget()
 
-# This is for clearing username/password fields
+# This creates a new snake object and saves it to the user's account
+def create_save_snake(name):
+    global temp_morphs
+
+    build_newSnake_frame(0)
+
+    # Make sure user selected at least one morph
+    no_morphs_found = True
+    for item in temp_morphs:
+        if item != "none":
+            no_morphs_found = False
+
+    # Either give an error or proceed
+    if no_morphs_found:
+        build_newSnake_frame(1, "You must select at least one morph.")
+    else:
+        print(f"Save snake named {name}")
+        # Convert snake into JSON with temp_morphs
+
+        # Clear entries
+
+        # Clear temp_morphs, labels, buttons
+
+        # Clear user inputs for saved snake
+
+        # Build page
+
+# This is for clearing saved snake fields
+def clear_newSnakeFrame_entry():
+    un.delete(0, END)
+    pw.delete(0, END)
+
+
+######## Login Page Construction ########
+
+# This builds the frame within the login page, with an option to display errors
+def build_login_frame(error, str=""):
+    warning = Label(loginFrame, text="Error: " + str, fg="red")
+    clear_login_entry()
+
+    # If there's no error, build the standard login frame:
+    if error == 0:
+        clear_frame(loginFrame, 0)
+        title_login.grid(row=0, column=0, columnspan=2)
+        username_entry.grid(row=1, column=0)
+        un.grid(row=1, column=1)
+        password_entry.grid(row=2, column=0)
+        pw.grid(row=2, column=1)
+        submit.grid(row=3, column=0)
+        create.grid(row=3, column=1)
+    # Builds the frame with an error message from str parameter
+    elif error == 1:
+        clear_frame(loginFrame, 0)
+        warning.grid(row=0, column=0, columnspan=2)
+        title_login.grid(row=1, column=0, columnspan=2)
+        username_entry.grid(row=2, column=0)
+        un.grid(row=2, column=1)
+        password_entry.grid(row=3, column=0)
+        pw.grid(row=3, column=1)
+        submit.grid(row=4, column=0)
+        create.grid(row=4, column=1)
+
+# This is for clearing login username/password fields
 def clear_login_entry():
     un.delete(0, END)
     pw.delete(0, END)
+
+
+######## Login Server Actions ########
+# This function attempts to create an account with username and password
+def account_create(user, pw):
+    client = connect_to_server()
+
+    # If server connection is valid...
+    if client != 1:
+        # Prevents empty user info
+        if user == "":
+            build_login_frame(1, "Username required.")
+        elif pw == "":
+            build_login_frame(1, "Password required.")
+        else:
+            sendmsg = {
+                "action":"create",
+                "username": user,
+                "password": pw,
+                "description":"{}"
+            }
+
+            send(client, sendmsg)
+            response = receive(client)
+
+            # Handles error
+            if "1" in response:
+                response = json.loads(response)
+                build_login_frame(1, response["1"])
+            # Creation successful
+            elif "0" in response:
+                print(f"Account created: {user}")
+                global username
+                username = user
+                login()
+
+        disconnect_server(client)
+
+    # Server ran into an error...
+    else:
+        build_login_frame(1, "Could not connect to server.")
+
+# This function attempts to log in with username and password
+def account_submit_login(user, pw):
+    client = connect_to_server()
+
+    # If server connection is valid...
+    if client != 1:
+        # Prevents empty user info
+        if user == "":
+            build_login_frame(1, "Username required.")
+        elif pw == "":
+            build_login_frame(1, "Password required.")
+        else:
+            sendmsg = {
+                "action":"login",
+                "username": user,
+                "password": pw
+            }
+
+            send(client, sendmsg)
+            response = receive(client)
+
+            # Handles invalid user error
+            if "1" in response:
+                response = json.loads(response)
+                build_login_frame(1, "Username does not exist.")
+            # Handles incorrect password error
+            elif "2" in response:
+                response = json.loads(response)
+                build_login_frame(1, response["2"])
+            # Creation successful
+            elif "0" in response:
+                print(f"Account logged in: {user}")
+                global username
+                username = user
+                login()
+
+        disconnect_server(client)
+    # Server ran into an error...
+    else:
+        build_login_frame(1, "Could not connect to server.")
+
+# This function attempts to log out of a user's account
+def account_logout():
+    client = connect_to_server()
+
+    # If server connection is valid...
+    if client != 1:
+        global username
+        sendmsg = {
+            "action": "logout",
+            "username": username
+        }
+
+        send(client, sendmsg)
+        response = receive(client)
+
+        # Logout successful
+        if "0" in response:
+            print(f"Account logged out: {username}")
+            username = ""
+            logout()
+
+        disconnect_server(client)
+    # Server ran into an error...
+    else:
+        print("Error: Could not connect to server.")
+
+# This function attempts to update the user's description.
+# This is used to save snakes to the account.
+def account_edit(description):
+    client = connect_to_server()
+
+    # If server connection is valid...
+    if client != 1:
+        global username
+        sendmsg = {
+            "action": "edit",
+            "username": username,
+            "new_description": description
+        }
+
+        send(client, sendmsg)
+        response = receive(client)
+
+        # Edit successful
+        if "0" in response:
+            print(f"Updated description for {username}:")
+            print(f"New description: {description}")
+
+        disconnect_server(client)
+    # Server ran into an error...
+    else:
+        print("Error: Could not connect to server.")
+
+# This function retrieve's a user's account information.
+# It can also be used to return a user's description info.
+def account_retrieve_description():
+    client = connect_to_server()
+
+    # If server connection is valid...
+    if client != 1:
+        global username
+        sendmsg = {
+            "action": "retrieve",
+            "username": username
+        }
+
+        send(client, sendmsg)
+        response = receive(client)
+
+        # Retrieval successful
+        if "description" in response:
+            response = json.loads(response)
+            disconnect_server(client)
+            return response["description"]
+
+        disconnect_server(client)
+    # Server ran into an error...
+    else:
+        print("Error: Could not connect to server.")
+
+
+######## Other Helper Functions ########
 
 # This can be used to clear a frame, 0 for forget, 1 for detroy
 def clear_frame(frame, setting):
@@ -190,31 +509,19 @@ def clear_frame(frame, setting):
         for widgets in frame.winfo_children():
             widgets.destroy()
 
-# This builds the login frame with an option to display errors
-def build_login_frame(error, str=""):
-    warning = Label(loginFrame, text="Error: " + str, fg="red")
-    clear_login_entry()
 
-    # If there's no error, build the standard login frame:
-    if error == 0:
-        clear_frame(loginFrame, 0)
-        title_login.grid(row=0, column=0, columnspan=2)
-        username.grid(row=1, column=0)
-        un.grid(row=1, column=1)
-        password.grid(row=2, column=0)
-        pw.grid(row=2, column=1)
-        submit.grid(row=3, column=0)
-        create.grid(row=3, column=1)
-    # Builds the frame with an error message from str parameter
-    elif error == 1:
-        warning.grid(row=0, column=0, columnspan=2)
-        title_login.grid(row=1, column=0, columnspan=2)
-        username.grid(row=2, column=0)
-        un.grid(row=2, column=1)
-        password.grid(row=3, column=0)
-        pw.grid(row=3, column=1)
-        submit.grid(row=4, column=0)
-        create.grid(row=4, column=1)
+############################### Create GUI objects ###############################
+
+##### Frames #####
+menuFrame = LabelFrame(root, padx=50, pady=5, borderwidth=0, highlightthickness=0)
+calcFrame = LabelFrame(root, width=100, height=100)
+resultsFrame = LabelFrame(root, text="Results")
+glossaryFrame = LabelFrame(root)
+collectionFrame = LabelFrame(root)
+newSnakeFrame = LabelFrame(collectionFrame)
+newSnakeMorphList = LabelFrame(newSnakeFrame)
+loginFrame = LabelFrame(root)
+logoutFrame = LabelFrame(root)
 
 def temp_submit_process(username, pw):
     if userToken == 999999:
@@ -259,89 +566,42 @@ def temp_create_process(username, pw):
     else:
         build_login_frame(1, "Could not connect to server.")
 
-# This function attempts to create an account with username and password
-def create_login(user, pw):
-    client = connect_to_server()
-
-    # If server connection is valid...
-    if client != 1:
-
-        # CHECK LOGIN
-
-        disconnect_server(client)
-    # Server ran into an error...
-    else:
-        build_login_frame(1, "Could not connect to server.")
-
-# This function attempts to log in with username and password
-def submit_login(user, pw):
-    client = connect_to_server()
-
-    # If server connection is valid...
-    if client != 1:
-
-        # CHECK LOGIN
-
-        # IF successful...
-        # ELIF not successful...
-
-        disconnect_server(client)
-    # Server ran into an error...
-    else:
-        build_login_frame(1, "Could not connect to server.")
-
-# The login process takes username and password strings for verification
+# Adjusts the login page after user logs in
 def login():
     clear_login_entry()
 
-    client = connect_to_server()
-
-    sendmsg = {
-        "action": "retrieve",
-        "userToken": userToken
-    }
-
-    b = json.dumps(sendmsg)
-    b = b.encode('utf-8')
-    blen = len(b)
-    blen_str = str(blen).encode('utf-8')
-    blen_buffer = b' ' * (1024 - len(blen_str)) + blen_str
-    client.send(blen_buffer)
-    client.send(b)
-
-    client.recv(1024).decode()
-    msg = client.recv(1024).decode()
-    data = json.loads(msg)
-
-    global snakesLabel
-    snakesLabel = Label(collectionFrame, text=data['description'])
-
-    disconnect_server(client)
+    # Add snakes to collection page
+    # global snakesLabel
+    # snakesLabel = Label(collectionFrame, text=data['description'])
 
     loggedIn = True
-    loginButton.grid_remove()
+
     collectionButton.config(state=NORMAL)
     collectionButton.grid(row=0, column=2)
     logoutButton.grid(row=0, column=3)
-
-    loginFrame.grid_remove()
     logoutFrame.grid(row=1, column=0)
+    loginButton.grid_remove()
+    loginFrame.grid_remove()
 
+# Adjusts the login page after user logs out
 def logout():
     clear_login_entry()
-    snakesLabel.destroy()
+
+    # Clear collection page
+    # snakesLabel.destroy()
 
     loggedIn = False
+    build_login_frame(0)
+
     collectionButton.config(state=DISABLED)
     collectionButton.grid(row=0, column=2)
-    loginButton.grid(row=0, column=3)
     logoutButton.grid_remove()
-
     logoutFrame.grid_remove()
+    loginButton.grid(row=0, column=3)
     loginFrame.grid(row=1, column=0)
 
 # Snake is the snake object, morph is morph name, het is true/false, column is 1 for parent 1 or 2 for parent 2
-def addMorphToCalc(snake, morph, het, column):
+def add_morph_to_calc(snake, morph, het, column):
     # Look up inheritance
     inherit = ""
 
@@ -352,17 +612,17 @@ def addMorphToCalc(snake, morph, het, column):
     snake.addMorph(morphs.Morph(morph, inherit, het, False))
 
     if column == 1:
-        global current_row1
+        global p1_row
 
         morph_label = Label(calcFrame, text=snake.getMorphList()[-1])
-        morph_label.grid(row=current_row1, column=0)
-        current_row1 = current_row1 + 1
+        morph_label.grid(row=p1_row, column=0)
+        p1_row = p1_row + 1
     elif column == 2:
-        global current_row2
+        global p2_row
 
         morph_label = Label(calcFrame, text=snake.getMorphList()[-1])
-        morph_label.grid(row=current_row2, column=2)
-        current_row2 = current_row2 + 1
+        morph_label.grid(row=p2_row, column=2)
+        p2_row = p2_row + 1
 
 # This clears the breeding results frame from the calc menu
 def clear_results():
@@ -381,6 +641,7 @@ def calculate_results():
     resultsLabel.pack()
     resultsFrame.grid(row=3, column=0)
 
+##### Menu Navigation Buttons #####
 
 homeButton = Button(menuFrame, text="Home", width=15, height=1, command=go_home)
 glossaryButton = Button(menuFrame, text="Morph Glossary", width=15, height=1, command=go_glossary)
@@ -399,11 +660,11 @@ selected1.set(morph_names[0])
 het1 = IntVar()
 hetCheck1 = Checkbutton(calcFrame, text="Het", variable=het1)
 p1_morphs = OptionMenu(calcFrame, selected1, *morph_names)
-add1 = Button(calcFrame, text="Add", padx=40, command=lambda: addMorphToCalc(morphcalc.p1, selected1.get(), het1.get(), 1))
+add1 = Button(calcFrame, text="Add", padx=40, command=lambda: add_morph_to_calc(morphcalc.p1, selected1.get(), het1.get(), 1))
 selected2 = StringVar()
 selected2.set(morph_names[0])
 p2_morphs = OptionMenu(calcFrame, selected2, *morph_names)
-add2 = Button(calcFrame, text="Add", padx=40, command=lambda: addMorphToCalc(morphcalc.p2, selected2.get(), het2.get(), 2))
+add2 = Button(calcFrame, text="Add", padx=40, command=lambda: add_morph_to_calc(morphcalc.p2, selected2.get(), het2.get(), 2))
 het2 = IntVar()
 hetCheck2 = Checkbutton(calcFrame, text="Het", variable=het2)
 calculate = Button(calcFrame, text="Calculate Results", padx=40, pady=10, command=calculate_results)
@@ -411,41 +672,40 @@ res_clear = Button(root, text="Clear results", command=clear_results)
 
 # Labels for glossary
 title_glossary = Label(glossaryFrame, text="Morph List", font=('Arial', 20))
-normal_image = ImageTk.PhotoImage(Image.open("images/normal-a.jpg"))
-normal_img_label = Label(glossaryFrame, image=normal_image)
-normal_title = Label(glossaryFrame, text="Normal", font=('Arial', 14))
-normal_description = Label(glossaryFrame, text="A standard wild type morph.", font=('Arial', 10))
-amel_image = ImageTk.PhotoImage(Image.open("images/amelanistic-a.jpg"))
-amel_img_label = Label(glossaryFrame, image=amel_image)
-amel_title = Label(glossaryFrame, text="Amelanistic", font=('Arial', 14))
-amel_description = Label(glossaryFrame, text="AKA 'albino' or 'amel'. Lacks melanin (black coloration).", font=('Arial', 10))
-anery_image = ImageTk.PhotoImage(Image.open("images/anerythristic-a.jpg"))
-anery_img_label = Label(glossaryFrame, image=anery_image)
-anery_title = Label(glossaryFrame, text="Anerythristic", font=('Arial', 14))
-anery_description = Label(glossaryFrame, text="AKA 'anery'. Lacks red pigment.", font=('Arial', 10))
 
-# Labels for collection
+# Labels, buttons for collection
 title_collection = Label(collectionFrame, text="My Collection", font=('Arial', 20))
+add_snake_title = Label(newSnakeFrame, text="Add a new snake:", font=('Arial', 12, 'italic'))
+add_snake_name = Label(newSnakeFrame, text="Name: ", anchor=E)
+as_name = Entry(newSnakeFrame, width=35)
+add_snake_morph_list = Label(newSnakeFrame, text="Selected morphs: ", anchor=E)
+add_snake_list_empty = Label(newSnakeMorphList, text="None selected", font=('Arial', 9, 'italic'))
+add_snake_morph = Label(newSnakeFrame, text="Add morphs: ", anchor=E)
+selected3 = StringVar()
+selected3.set(morph_names[0])
+het3 = IntVar()
+hetCheck3 = Checkbutton(newSnakeFrame, text="Het", variable=het3)
+add_snake_menu = OptionMenu(newSnakeFrame, selected3, *morph_names)
+add3 = Button(newSnakeFrame, text="Add", command=lambda: store_morph(selected3.get(), het3.get()))
+save_snake = Button(newSnakeFrame, text="Save this snake to your account", padx=10, pady=10, command=lambda: create_save_snake(as_name.get()))
 
 # Labels, entry, buttons for login
 title_login = Label(loginFrame, text="Log in to account: ")
-username = Label(loginFrame, text="Username: ")
+username_entry = Label(loginFrame, text="Username: ")
 un = Entry(loginFrame, width=20)
-password = Label(loginFrame, text="Password: ")
+password_entry = Label(loginFrame, text="Password: ")
 pw = Entry(loginFrame, show="*", width=20)
-submit = Button(loginFrame, text="Submit", command=lambda: temp_submit_process(un.get(), pw.get()))
-create = Button(loginFrame, text="Create Account", command=lambda: temp_create_process(un.get(), pw.get()))
+submit = Button(loginFrame, text="Submit", command=lambda: account_submit_login(un.get(), pw.get()))
+create = Button(loginFrame, text="Create Account", command=lambda: account_create(un.get(), pw.get()))
 
 # Labels, buttons for logout
 confirmation = Label(logoutFrame, text="You are currently logged in.")
 title_logout = Label(logoutFrame, text="Log out of account?")
-yes = Button(logoutFrame, text="Yes", command=logout)
+yes = Button(logoutFrame, text="Yes", command=account_logout)
 no = Button(logoutFrame, text="No", command=go_home)
 
-#################### Second, display it ####################
 
-
-##### FILL THE GUI #####
+############################### Display GUI objects ###############################
 
 # Menu Frame
 menuFrame.grid(row=0, column=0)
@@ -479,6 +739,9 @@ build_scrollframe()
 
 # Collection frame
 title_collection.pack()
+newSnakeFrame.pack()
+build_newSnake_frame(0)
+
 
 # Login frame
 build_login_frame(0)
@@ -490,10 +753,4 @@ yes.grid(row=2, column=0)
 no.grid(row=2, column=1)
 
 ### This runs the GUI
-# root.mainloop()
-
-client = connect_to_server()
-send(client, '{"action": "create", "username": "Bobby", "password": "123", "description": "Bobbing around"}')
-response = receive(client)
-print(f"Response: {response}")
-disconnect_server(client)
+root.mainloop()
