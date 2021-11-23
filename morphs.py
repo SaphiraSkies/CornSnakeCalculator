@@ -179,6 +179,12 @@ def printList(list, format):
     if format == 1:
         print(*list, sep='\n')
 
+# Will retrieve a morph's inheritance by its name
+def getInheritanceByName(str):
+    for i in range(len(allMorphs)):
+        if str == allMorphs[i].getName():
+            return allMorphs[i].getInheritance()
+
 
 
 ########### Test code ###########

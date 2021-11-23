@@ -8,6 +8,7 @@
 
 import morphs
 import punnettcalc
+from textwrap import wrap
 
 
 ###########################################################################
@@ -129,7 +130,6 @@ def getAlleles(morphlist):
 
     return alleles
 
-
 # This function handles the calculations for breeding results
 def breedResults(p1, p2):
 
@@ -191,20 +191,22 @@ def breedResults(p1, p2):
     # We need a list to keep track of the results for each morph combination.
     # Each morph has a possibility of being normal, het, or fully mutated -
     # these are the three numbers in "count"
-    numOffspring = []
-    norm = 0
-    het = 0
-    mut = 0
-    for n in range(len(tempList1)):
-        count = [norm, het, mut]
-        numOffspring.append(count)
+    # numOffspring = []
+    # norm = 0
+    # het = 0
+    # mut = 0
+    # for n in range(len(tempList1)):
+    #     count = [norm, het, mut]
+    #     numOffspring.append(count)
 
     # print("NumOffspring: ", end='')
     # for e in range(len(numOffspring)):
     #     print(f"{numOffspring[e][0]}, {numOffspring[e][1]}, {numOffspring[e][2]}")
 
-    # Run the Punnet Square calculation
+    # Run the Punnet Square calculation and return the results
     results = punnettcalc.punnett(p1_alleles, p2_alleles)
+    return results
+
     # morphs.printList(results, 0)
 
 
@@ -221,51 +223,51 @@ def breedResults(p1, p2):
     # for e in range(len(numOffspring)):
     #     print(f"{numOffspring[e][0]}, {numOffspring[e][1]}, {numOffspring[e][2]}")
 
-    index = 0
-
-    # Count the results
-    # For each allele pair...
-    for i in range(len(p1_alleles)):
-
-        # Only look at every other character (each pair of two)
-        try:
-            curChar = p1_alleles[index][0]
-        except:
-            break
-
-        normChar = curChar.upper() + curChar.upper()
-        hetChar1 = curChar.upper() + curChar.lower()    # The two het versions account for
-        hetChar2 = curChar.lower() + curChar.upper()    # Aa and aA combinations
-        fullChar = curChar.lower() + curChar.lower()
-
-        for combo in results:
-            # Count normal
-            if normChar in combo:
-                numOffspring[i][0] += 1
-            # Count het
-            elif hetChar1 in combo or hetChar2 in combo:
-                numOffspring[i][1] += 1
-            # Count fully mutated
-            elif fullChar in combo:
-                numOffspring[i][2] += 1
-
-        index = index + 2
-
-    # Translate results into concise output
-    total_results = len(results)
-
-    results = ""
-
-    for i in range(len(morphs_p1)):
-        numNormal = (numOffspring[i][0] / total_results) * 100
-        numHet = (numOffspring[i][1] / total_results) * 100
-        numFull = (numOffspring[i][2] / total_results) * 100
-
-        if morphs_p1[i].inheritance == 'N':
-            results = results + "\n" + morphs_p1[i].name.capitalize() + ": 100% " + morphs_p1[i].name
-        else:
-            results = results + "\n" + morphs_p1[i].name.capitalize() + ": " + str(numNormal) + "% normal, "
-            results = results + str(numHet) + "% het " + morphs_p1[i].name + ", " + str(numFull) + "% " + morphs_p1[i].name
+    # index = 0
+    #
+    # # Count the results
+    # # For each allele pair...
+    # for i in range(len(p1_alleles)):
+    #
+    #     # Only look at every other character (each pair of two)
+    #     try:
+    #         curChar = p1_alleles[index][0]
+    #     except:
+    #         break
+    #
+    #     normChar = curChar.upper() + curChar.upper()
+    #     hetChar1 = curChar.upper() + curChar.lower()    # The two het versions account for
+    #     hetChar2 = curChar.lower() + curChar.upper()    # Aa and aA combinations
+    #     fullChar = curChar.lower() + curChar.lower()
+    #
+    #     for combo in results:
+    #         # Count normal
+    #         if normChar in combo:
+    #             numOffspring[i][0] += 1
+    #         # Count het
+    #         elif hetChar1 in combo or hetChar2 in combo:
+    #             numOffspring[i][1] += 1
+    #         # Count fully mutated
+    #         elif fullChar in combo:
+    #             numOffspring[i][2] += 1
+    #
+    #     index = index + 2
+    #
+    # # Translate results into concise output
+    # total_results = len(results)
+    #
+    # results = ""
+    #
+    # for i in range(len(morphs_p1)):
+    #     numNormal = (numOffspring[i][0] / total_results) * 100
+    #     numHet = (numOffspring[i][1] / total_results) * 100
+    #     numFull = (numOffspring[i][2] / total_results) * 100
+    #
+    #     if morphs_p1[i].inheritance == 'N':
+    #         results = results + "\n" + morphs_p1[i].name.capitalize() + ": 100% " + morphs_p1[i].name
+    #     else:
+    #         results = results + "\n" + morphs_p1[i].name.capitalize() + ": " + str(numNormal) + "% normal, "
+    #         results = results + str(numHet) + "% het " + morphs_p1[i].name + ", " + str(numFull) + "% " + morphs_p1[i].name
 
     # for i in range(len(morphs_p1)):
     #     numNormal = (numOffspring[i][0] / total_results) * 100
@@ -278,9 +280,30 @@ def breedResults(p1, p2):
     #         print(f"{morphs_p1[i].name.capitalize()}: {numNormal}% normal, "
     #               f"{numHet}% het {morphs_p1[i].name}, {numFull}% {morphs_p1[i].name}")
 
-    return results
+    # return results
 
+# Sorts results
+def bagSnakes(results):
+    # Total number of offspring
+    total = len(results)
+    print(f"Total offspring: {total}")
 
+    # The number of different traits
+    num_alleles = len(results[0]) / 2
+
+    # Get the character assigned to each one
+    alleles = []
+
+    # Split strings into pairs of chars
+    for x in results:
+        pairs_list = wrap(x, 2)
+        print(pairs_list)
+
+    # If all results are the same, return the bag
+    # if all(x == results[0] for x in results):
+    #     print("All elements in list are equal.")
+    # else:
+    #     print("All elements in list are not equal.")
 
 
 running = False
@@ -289,71 +312,10 @@ p1 = Snake()
 p2 = Snake()
 
 # For testing
-# p1.addMorph(morphs.Morph("caramel", 'R', True))
-# p1.addMorph(morphs.Morph("okeetee", 'N'))
-# p1.addMorph(morphs.Morph("hypomelanistic", 'R'))
-# p2.addMorph(morphs.Morph("tessera", 'D'))
-# p2.addMorph(morphs.Morph("caramel", 'R'))
+p1.addMorph(morphs.Morph("caramel", 'R', True))
+p1.addMorph(morphs.Morph("okeetee", 'N'))
+p1.addMorph(morphs.Morph("hypomelanistic", 'R'))
+p2.addMorph(morphs.Morph("tessera", 'D'))
+p2.addMorph(morphs.Morph("caramel", 'R'))
 
-# print("*******************************************************************")
-# print("Welcome to the breeding calculator. Please use the menu to proceed.")
-# print("*******************************************************************")
-
-###### Menu ######
-while running:
-    print("\n---- Current parent snakes ----")
-    print("Parent 1:")
-    if p1.getName() == "NULL":
-        if p1.morphs:
-            morphs.printList(p1.getMorphList(), 0)
-        else:
-            print("None selected")
-    else:
-        print(f"{p1.getName()} - ", end='')
-        morphs.printList(p1.getMorphList(), 0)
-    print("\nParent 2:")
-    if p2.getName() == "NULL":
-        if p2.morphs:
-            morphs.printList(p2.getMorphList(), 0)
-        else:
-            print("None selected")
-    else:
-        print(f"{p2.getName()} - ", end='')
-        morphs.printList(p2.getMorphList(), 0)
-
-    print("\n1. Select parent #1 snake")
-    print("2. Select parent #2 snake")
-    print("3. Clear parent snakes")
-    print("4. Calculate breeding results")
-    print("5. Create account")
-    print("6. View morphs")
-    print("7. Quit\n")
-
-    response = 0
-    while response not in ["1", "2", "3", "4", "5", "6", "7"]:
-        response = input("Select an option: ")
-        if response == "1":
-            print("Selected 1.")
-            selectSnake(p1)
-        elif response == "2":
-            print("Selected 2.")
-            selectSnake(p2)
-        elif response == "3":
-            print("Selected 3. Clearing selected snakes.")
-            p1.clearData()
-            p2.clearData()
-        elif response == "4":
-            print("Selected 4")
-            breedResults(p1, p2)
-        elif response == "5":
-            print("Selected 5")
-            print("[Prompts to create user account go here]")
-        elif response == "6":
-            for i in morphs.allMorphs:
-                print("[Image of the morph goes here]")
-                print(f"{i.name.capitalize()}\n")
-        elif response == "7":
-            print("Selected 7. Quitting...")
-            running = False
-        else:
-            print("Invalid entry. Please choose 1, 2, 3, 4, 5, 6, or 7.")
+bagSnakes(breedResults(p1, p2))
