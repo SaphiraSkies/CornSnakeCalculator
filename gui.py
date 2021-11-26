@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter import messagebox
 from PIL import ImageTk,Image
 import morphs
 import morphcalc
@@ -20,7 +21,7 @@ ADDR = (SERVER, PORT)
 
 
 # A list of all morph names (strings)
-morph_names = morphs.getMorphNamesOnly(morphs.allMorphs)
+morph_names = morphs.getMorphNamesOnly(morphs.all_morphs)
 
 
 # User-related variables
@@ -193,6 +194,8 @@ def build_calc_frame():
 # Clears just the p1 or p2 morphs from the calculator
 # Option = 1 for p1, option = 2 for p2
 def clear_calc_column(option):
+    clear_frame(resultsFrame, 1)
+
     global p1_row
     global p2_row
 
@@ -213,7 +216,7 @@ def add_morph_to_calc(snake, morph, het, column):
     global p1_labels
     global p2_labels
 
-    for m in morphs.allMorphs:
+    for m in morphs.all_morphs:
         if m.name == morph:
             inherit = m.getInheritance()
 
@@ -222,17 +225,25 @@ def add_morph_to_calc(snake, morph, het, column):
     if column == 1:
         global p1_row
 
-        morph_label = Label(calcFrame, text=snake.getMorphList()[-1])
+        morph_label = Label(calcFrame, text=snake.getMorphNameList()[-1])
         morph_label.grid(row=p1_row, column=0)
+        # morph_delete = Button(calcFrame, text="X", command=lambda: remove_morph_from_calc(snake, snake.getMorphNameList()[-1]))
+        # morph_delete.grid(row=p1_row, column=1)
         p1_row = p1_row + 1
         p1_labels.append(morph_label)
     elif column == 2:
         global p2_row
 
-        morph_label = Label(calcFrame, text=snake.getMorphList()[-1])
+        morph_label = Label(calcFrame, text=snake.getMorphNameList()[-1])
         morph_label.grid(row=p2_row, column=2)
+        # morph_delete = Button(calcFrame, text="X", command=lambda: remove_morph_from_calc(snake, snake.getMorphNameList()[-1]))
+        # morph_delete.grid(row=p2_row, column=3)
         p2_row = p2_row + 1
         p2_labels.append(morph_label)
+
+# Remove an item from the calculator
+def remove_morph_from_calc(snake, morph_name):
+    pass
 
 # This clears the breeding results frame from the calc menu
 def clear_results():
@@ -244,12 +255,15 @@ def clear_results():
 def calculate_results():
     clear_frame(resultsFrame, 1)
 
-    results = morphcalc.breedResults(morphcalc.p1, morphcalc.p2)
+    if morphcalc.p1.getMorphObjList() and morphcalc.p2.getMorphObjList():
+        results = morphcalc.run(morphcalc.p1, morphcalc.p2)
 
-    res_clear.grid(row=2, column=0, padx=10, pady=10)
-    resultsLabel = Label(resultsFrame, text=results)
-    resultsLabel.pack()
-    resultsFrame.grid(row=3, column=0)
+        res_clear.grid(row=2, column=0, padx=10, pady=10)
+        resultsLabel = Label(resultsFrame, text=results)
+        resultsLabel.pack()
+        resultsFrame.grid(row=3, column=0)
+    else:
+        messagebox.showwarning("Error", "You must enter at least one morph for each parent before calculation.")
 
 
 ######## Glossary Functions ########
@@ -257,7 +271,7 @@ def calculate_results():
 # This is used for constructing a scrollbox within the Glossary frame
 # Code adapted from:
 # https://bytes.com/topic/python/answers/157174-how-get-scrollregion-adjust-w-window-size
-def build_scrollframe():
+def build_glossary_scrollframe():
     # Create canvas and scrollbar
     canv = Canvas(glossaryFrame, height=650, width=400)
     vsb = Scrollbar(glossaryFrame, orient="v", command=canv.yview)
@@ -274,7 +288,7 @@ def build_scrollframe():
     image_ref = []
 
     # Add all the morphs to the canvas
-    for i in morphs.allMorphs:
+    for i in morphs.all_morphs:
         path = i.getImageLoc()
         img = Image.open(path)
         img = img.resize((390,290), Image.ANTIALIAS)
@@ -445,7 +459,6 @@ def delete_snake(snake):
     print(f"User dict before: {user_snakes_dict}")
     for i in range(len(user_snakes_dict)):
         if user_snakes_dict[i] == snake:
-            snake_str = str(snake)
             user_snakes_dict.pop(i)
             break
     print(f"User dict after: {user_snakes_dict}")
@@ -454,7 +467,7 @@ def delete_snake(snake):
     print(f"User obj before: {user_snakes_obj}")
     for i in range(len(user_snakes_dict)):
         name = user_snakes_obj[i].getName()
-        morph_list = user_snakes_obj[i].getMorphList()
+        morph_list = user_snakes_obj[i].getMorphNameList()
         print(f"Name: {name}, morphs: {morph_list}")
         if name == snake["name"]:
             if morph_list == snake["morphs"]:
@@ -532,7 +545,7 @@ def add_from_collection(snake, parent):
 
     snake_morphs = snake["morphs"].copy()
 
-    # Read "het" as its own value
+    # Read "het" as its own separate value from the list of morphs
     for i in range(len(snake_morphs)):
         het = False
         if "het " in snake_morphs[i]:
@@ -543,6 +556,9 @@ def add_from_collection(snake, parent):
             add_morph_to_calc(morphcalc.p1, snake_morphs[i], het, 1)
         elif parent == 2:
             add_morph_to_calc(morphcalc.p2, snake_morphs[i], het, 2)
+
+    # Go to calculator
+    go_home()
 
 # This function displays all the user's snakes on the collection frame
 def display_collection():
@@ -932,7 +948,7 @@ def dict_to_snake(dict, option=0):
 
 menuFrame = LabelFrame(root, padx=50, pady=5, borderwidth=0, highlightthickness=0)
 calcFrame = LabelFrame(root, width=100, height=100)
-resultsFrame = LabelFrame(root, text="Results")
+resultsFrame = LabelFrame(root, text="Results", font=('Arial', 14))
 glossaryFrame = LabelFrame(root)
 collectionFrame = LabelFrame(root)
 newSnakeFrame = LabelFrame(collectionFrame)
@@ -1025,7 +1041,7 @@ build_calc_frame()
 
 # Glossary frame
 title_glossary.grid(row=0, column=0)
-build_scrollframe()
+build_glossary_scrollframe()
 
 # Collection frame
 title_collection.pack()
@@ -1042,4 +1058,4 @@ yes.grid(row=2, column=0)
 no.grid(row=2, column=1)
 
 ### This runs the GUI
-# root.mainloop()
+root.mainloop()

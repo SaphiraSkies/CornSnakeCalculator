@@ -9,7 +9,7 @@
 from os.path import exists
 
 # This function is used to verify morph image links are working
-def check_exists(path):
+def checkExists(path):
     return exists(path)
 
 ###########################
@@ -97,7 +97,7 @@ recessive = [amelanistic, anerythristic, caramel,
 palmetto = Morph("palmetto", 'I', False, False, "A solid white base with scattered spots of color.")
 
 # A list of all incomplete dominant traits
-incDom = [palmetto]
+incomplete_dominant = [palmetto]
 
 # Dominant traits
 buf = Morph("buf", 'D', False, False, "Reduced reds and oranges, similar to caramel but less extreme.")
@@ -109,7 +109,7 @@ toffee = Morph("toffee", 'D', False, False, "Light brown colors, similar to cara
 dominant = [buf, masque, tessera, toffee]
 
 # A list of all morphs
-allMorphs = wild_types + recessive + incDom + dominant
+all_morphs = wild_types + recessive + incomplete_dominant + dominant
 
 ###########################
 #                         #
@@ -181,19 +181,19 @@ def printList(list, format):
 
 # Will retrieve a morph's inheritance by its name
 def getInheritanceByName(str):
-    for i in range(len(allMorphs)):
-        if str == allMorphs[i].getName():
-            return allMorphs[i].getInheritance()
+    for i in range(len(all_morphs)):
+        if str == all_morphs[i].getName():
+            return all_morphs[i].getInheritance()
 
 
 
 ########### Test code ###########
 
-# for i in allMorphs:
+# for i in all_morphs:
 #     print(f"Morph name: '{i.getName()}'")
 #     print(f"Inheritance: {i.getInheritance()}")
 #     print(f"Het: {i.het}")
 #     print(f"Default: {i.default}")
 #     print(f"Image location: {i.getImageLoc()}")
-#     print(f"Image exists: {check_exists(i.getImageLoc())}")
+#     print(f"Image exists: {checkExists(i.getImageLoc())}")
 #     print(f"Description: '{i.getDescription()}'\n")

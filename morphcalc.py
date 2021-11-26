@@ -24,115 +24,54 @@ class Snake:
     def getName(self):
         return self.name
 
-    # Sets snake's name
-    def setName(self, name):
-        self.name = name
-
     # Add a morph to this snake (input a new instance of a morph)
     def addMorph(self, morph):
         self.morphs.append(morph)
 
-    # Remove a morph from this snake
+    # Removes a morph object from this snake
     def removeMorph(self, morph):
         self.morphs.remove(morph)
 
     # Returns a string of all morph names on this snake, separated by commas
-    def getMorphList(self):
+    def getMorphNameList(self):
         return morphs.getMorphNamesOnly(self.morphs)
 
-    # Clears all data from this snake
-    def clearData(self):
-        self.name = "NULL"
-        self.morphs.clear()
+    # Returns a list of all morph objects on this snake
+    def getMorphObjList(self):
+        return self.morphs
 
-# Adds a new snake. Any existing data for this snake will be overwritten.
-def selectSnake(snake):
-    snake.clearData()
+    # Returns a morph object on this snake based on its name
+    def getMorphByName(self, name):
+        for x in self.morphs:
+            if x.getName == name:
+                return x
 
-    # Set snake's name
-    n = input("Choose a name: ")
-    snake.setName(n)
-    print(f"Name set to: '{n}'\n")
+# Global variables for calculations
+allele_dict = {}
+total_mutated = 0
 
-    # Print menu of morphs to be selected
-    morphs.printMorphNames(morphs.allMorphs, 2)
-    print("")
+# Add a key to the global allele dict
+def addKey(key, val):
+    global allele_dict
+    allele_dict[key] = val
 
-    validInput = False
+# Clear the allele_dict
+def clearDict():
+    global allele_dict
+    allele_dict.clear()
 
-    # Loops for morph choices
-    while validInput == False:
-        m = input("Choose a morph for this snake by typing the number: ")
-        if int(m) < 0 or int(m) > len(morphs.allMorphs):
-            print("Invalid input. Please enter the number next to the morph you want to add.")
-        else:
-            choice = ""
-            het = False
-            while choice not in ["y", "Y", "n", "N"]:
-                choice = input("Is this a het morph? (Y/N) ")
-                if choice == "Y" or choice == "y":
-                    het = True
-                elif choice == "N" or choice == "n":
-                    het = False
-                else:
-                    print("Invalid input. Please enter Y for yes or N for no.")
+# Takes a dict and sorts by key name alphabetically
+def sortDict(dict):
+    result = sorted(dict.items())
+    return result
 
-            # Create morph instance for this snake
-            name = morphs.allMorphs[int(m) - 1].getName()
-            inherit = morphs.allMorphs[int(m) - 1].getInheritance()
-
-            snake.addMorph(morphs.Morph(name, inherit, het, False))
-
-            print(f"Added morph: ", end='')
-            if het == True:
-                print("het ", end='')
-            print(f"{snake.morphs[-1].getName()}")
-            validInput = True
-
-            # Loops for additional morphs
-            choice = ""
-            while choice not in ["y", "Y", "n", "N"]:
-                choice = input("Would you like to add another morph to this snake? (Y/N) ")
-                if choice == "Y" or choice == "y":
-                    validInput = False
-                elif choice == "N" or choice == "n":
-                    validInput = True
-                else:
-                    print("Invalid input. Please enter Y for yes or N for no.")
-
-
-# This is used for incrementing a character by one. Reference:
-# https://www.geeksforgeeks.org/ways-increment-character-python/
+# Increment a character and return it
 def incChar(ch):
     temp = chr(ord(ch) + 1)
     return temp
 
-
-# This function translates a list of morphs into allele characters for a Punnett Square
-def getAlleles(morphlist):
-    alleles = []
-    char = 'A'
-
-    for x in morphlist:
-        # Normal traits are always inherited
-        if x.inheritance == 'N':
-            alleles.append("##")
-        # Other traits are AA if normal (non-mutated), Aa if het, and aa if fully mutated
-        else:
-            if x.het == True:
-                alleles.append(char.upper() + char.lower())
-            elif x.default == True:
-                alleles.append(char.upper() + char.upper())
-            else:
-                alleles.append(char.lower() + char.lower())
-
-        char = incChar(char)
-
-    return alleles
-
-# This function handles the calculations for breeding results
-def breedResults(p1, p2):
-
+# This function takes two parent snakes with morphs that are not equivalent, then returns a list of two lists that are comparable
+def matchMorphs(p1, p2):
     # Make a copy of each parents' morph lists
     morphs_p1 = p1.morphs.copy()
     morphs_p2 = p2.morphs.copy()
@@ -141,7 +80,7 @@ def breedResults(p1, p2):
     tempList2 = []
     matched = []        # Used for keeping track of which morphs are already matched
 
-    # Look at each morph, determine if the same trait is in the other parent
+    # Look at each morph, determine if the same trait exists in the other parent
     for i in morphs_p1:
         matchFound = False
 
@@ -182,140 +121,236 @@ def breedResults(p1, p2):
 
             matched.append(j.name)
 
-    # Now we have two comparable lists...
-    # We want to convert the morph names into allele characters
-    # that can be used in a Punnett Square
-    p1_alleles = "".join(getAlleles(tempList1))
-    p2_alleles = "".join(getAlleles(tempList2))
+    results = [tempList1, tempList2]
+    return results
 
-    # We need a list to keep track of the results for each morph combination.
-    # Each morph has a possibility of being normal, het, or fully mutated -
-    # these are the three numbers in "count"
-    # numOffspring = []
-    # norm = 0
-    # het = 0
-    # mut = 0
-    # for n in range(len(tempList1)):
-    #     count = [norm, het, mut]
-    #     numOffspring.append(count)
+# Builds the allele dictionary
+def storeToDict(morph, char):
+    name = morph.getName()
+    none = "no mutation"
+    het = "het "
+    vis = " (Visual)"
+    nonvis = " (Nonvisual)"
+    sup = " (Super)"
 
-    # print("NumOffspring: ", end='')
-    # for e in range(len(numOffspring)):
-    #     print(f"{numOffspring[e][0]}, {numOffspring[e][1]}, {numOffspring[e][2]}")
+    upper = char.upper() + char.upper()
+    mixed1 = char.upper() + char.lower()
+    mixed2 = char.lower() + char.upper()
+    lower = char.lower() + char.lower()
+
+    # Dominant traits
+    if morph.inheritance == 'D':
+        addKey(upper, none)
+        addKey(mixed1, het + name + vis)
+        addKey(mixed2, het + name + vis)
+        addKey(lower, name + vis)
+    # Incomplete dominant traits
+    elif morph.inheritance == 'I':
+        addKey(upper, none)
+        addKey(mixed1, het + name + vis)
+        addKey(mixed2, het + name + vis)
+        addKey(lower, name + sup)
+    # Recessive traits
+    elif morph.inheritance == 'R':
+        addKey(upper, none)
+        addKey(mixed1, het + name + nonvis)
+        addKey(mixed2, het + name + nonvis)
+        addKey(lower, name + vis)
+    elif morph.inheritance == 'N':
+        addKey("##", name)
+
+# This function translates a list of morph objectss into allele characters for a Punnett Square
+# Returned is a dict in the form of: alleles = {"XX":"normal", "AA":"alemanistic"}
+def getAllelesFromMorphList(morphlist):
+    alleles = {}
+    char = 'A'
+
+    for x in morphlist:
+        # Normal traits are always inherited
+        if x.inheritance == 'N':
+            alleles["##"] = x.getName()
+            storeToDict(x, "#")
+        # Other traits are AA if normal (non-mutated), Aa if het, and aa if fully mutated
+        else:
+            name = x.getName()
+
+            if x.het == True:
+                pair = char.upper() + char.lower()
+                alleles[pair] = "het " + name
+            elif x.default == True:
+                pair = char.upper() + char.upper()
+                alleles[pair] = name
+            else:
+                pair = char.lower() + char.lower()
+                alleles[pair] = name
+
+            storeToDict(x, char)
+        char = incChar(char)
+
+    return alleles
+
+# This function takes two snakes and returns a list of the Punnett results
+def breedResults(p1, p2):
+    # Get comparable morph lists
+    matched_lists = matchMorphs(p1, p2)
+
+    # Convert the morph names into allele characters that can be used in a Punnett Square
+    p1_alleles = "".join(getAllelesFromMorphList(matched_lists[0]))
+    p2_alleles = "".join(getAllelesFromMorphList(matched_lists[1]))
 
     # Run the Punnet Square calculation and return the results
     results = punnettcalc.punnett(p1_alleles, p2_alleles)
+
     return results
 
-    # morphs.printList(results, 0)
+# Gets a list of alleles from Punnett Results
+def getAllelesFromResults(results):
+    # Get a list of each character used for alleles
+    alleles = wrap(results[0], 2)
+    for i in range(len(alleles)):
+        alleles[i] = alleles[i][0]
 
+    return alleles
 
-    # Now we have...
-    # tempList1     tempList2       p1_alleles      p2_alleles      numOffspring
-    # --------------------------------------------------------------------------
-    # morph1        morph1          Aa              AA              [0, 1, 2]
-    # morph2        morph2          bb              Bb              [0, 0, 0]
-    #
-    # And we have RESULTS with all breeding results
+# Take the punnet results, sorts them into matching groups, returns a list of lists for translation
+def sortPunnettResults(results, alleles, index):
+    curr_char = alleles[index]
 
+    if curr_char == "#":
+        return results
 
-    # print("NumOffspring START: ")
-    # for e in range(len(numOffspring)):
-    #     print(f"{numOffspring[e][0]}, {numOffspring[e][1]}, {numOffspring[e][2]}")
+    upper = curr_char.upper() + curr_char.upper()
+    mixed1 = curr_char.lower() + curr_char.upper()
+    mixed2 = curr_char.upper() + curr_char.lower()
+    lower = curr_char.lower() + curr_char.lower()
 
-    # index = 0
-    #
-    # # Count the results
-    # # For each allele pair...
-    # for i in range(len(p1_alleles)):
-    #
-    #     # Only look at every other character (each pair of two)
-    #     try:
-    #         curChar = p1_alleles[index][0]
-    #     except:
-    #         break
-    #
-    #     normChar = curChar.upper() + curChar.upper()
-    #     hetChar1 = curChar.upper() + curChar.lower()    # The two het versions account for
-    #     hetChar2 = curChar.lower() + curChar.upper()    # Aa and aA combinations
-    #     fullChar = curChar.lower() + curChar.lower()
-    #
-    #     for combo in results:
-    #         # Count normal
-    #         if normChar in combo:
-    #             numOffspring[i][0] += 1
-    #         # Count het
-    #         elif hetChar1 in combo or hetChar2 in combo:
-    #             numOffspring[i][1] += 1
-    #         # Count fully mutated
-    #         elif fullChar in combo:
-    #             numOffspring[i][2] += 1
-    #
-    #     index = index + 2
-    #
-    # # Translate results into concise output
-    # total_results = len(results)
-    #
-    # results = ""
-    #
-    # for i in range(len(morphs_p1)):
-    #     numNormal = (numOffspring[i][0] / total_results) * 100
-    #     numHet = (numOffspring[i][1] / total_results) * 100
-    #     numFull = (numOffspring[i][2] / total_results) * 100
-    #
-    #     if morphs_p1[i].inheritance == 'N':
-    #         results = results + "\n" + morphs_p1[i].name.capitalize() + ": 100% " + morphs_p1[i].name
-    #     else:
-    #         results = results + "\n" + morphs_p1[i].name.capitalize() + ": " + str(numNormal) + "% normal, "
-    #         results = results + str(numHet) + "% het " + morphs_p1[i].name + ", " + str(numFull) + "% " + morphs_p1[i].name
+    total_list = []
+    upper_list = []
+    mixed_list = []
+    lower_list = []
 
-    # for i in range(len(morphs_p1)):
-    #     numNormal = (numOffspring[i][0] / total_results) * 100
-    #     numHet = (numOffspring[i][1] / total_results) * 100
-    #     numFull = (numOffspring[i][2] / total_results) * 100
-    #
-    #     if morphs_p1[i].inheritance == 'N':
-    #         print(f"{morphs_p1[i].name.capitalize()}: 100% {morphs_p1[i].name}")
-    #     else:
-    #         print(f"{morphs_p1[i].name.capitalize()}: {numNormal}% normal, "
-    #               f"{numHet}% het {morphs_p1[i].name}, {numFull}% {morphs_p1[i].name}")
+    # If all results are the same, return the bag as is
+    if all(x == results[0] for x in results):
+        return results
+    else:
+        for a in results:
+            if upper in a:
+                upper_list.append(a)
+            elif mixed1 in a or mixed2 in a:
+                mixed_list.append(a)
+            elif lower in a:
+                lower_list.append(a)
 
-    # return results
+        if index < len(alleles) - 1:
+            total_list.append(sortPunnettResults(upper_list, alleles, index + 1))
+            total_list.append(sortPunnettResults(mixed_list, alleles, index + 1))
+            total_list.append(sortPunnettResults(lower_list, alleles, index + 1))
+        else:
+            total_list.append(upper_list)
+            total_list.append(mixed_list)
+            total_list.append(lower_list)
 
-# Sorts results
-def bagSnakes(results):
-    # Total number of offspring
-    total = len(results)
-    print(f"Total offspring: {total}")
+        return total_list
 
-    # The number of different traits
-    num_alleles = len(results[0]) / 2
+# Takes the sorted Punnett results and translates them to plain English
+def sortedPunnettToNames(sorted_results, total_num_results):
+    global total_mutated
+    result_string = ""
+    for a in sorted_results:
+        # If this item contains another list, recurse
+        if type(a) == list:
+            breakdown = sortedPunnettToNames(a, total_num_results)
+            if breakdown != "":
+                result_string = result_string + breakdown + "\n"
+        # If a is not a list, format results and return as string
+        else:
+            global allele_dict
 
-    # Get the character assigned to each one
-    alleles = []
+            # Get allele pairs
+            pairs = wrap(a, 2)
 
-    # Split strings into pairs of chars
-    for x in results:
-        pairs_list = wrap(x, 2)
-        print(pairs_list)
+            # Translate them into English
+            for i in range(len(pairs)):
+                pairs[i] = allele_dict[pairs[i]]
 
-    # If all results are the same, return the bag
-    # if all(x == results[0] for x in results):
-    #     print("All elements in list are equal.")
-    # else:
-    #     print("All elements in list are not equal.")
+            # Remove any non-mutated alleles
+            pairs = list(filter(("no mutation").__ne__, pairs))
+            if len(pairs) < 1:
+                return ""
 
+            # Join the results
+            complete_pairs = ", ".join(pairs)
 
-running = False
+            # Calculate total and return
+            percentage = (len(sorted_results) / total_num_results) * 100
+            total_mutated = total_mutated + percentage
+            result = str(percentage) + "% " + complete_pairs
+            return result
+    return result_string
+
+# This calculates the number of normal morphs AFTER the rest have been sorted
+def addNumNormal():
+    global total_mutated
+    global allele_dict
+    if total_mutated >= 100.0:
+        return ""
+    else:
+        num_normal_results = 100 - total_mutated
+        if "##" in allele_dict:
+            return str(num_normal_results) + "% " + allele_dict["##"]
+        else:
+            return str(num_normal_results) + "% normal"
+
+# Use this after completing calculations to clear global variables
+def clearResults():
+    global allele_dict
+    global total_mutated
+    allele_dict = {}
+    total_mutated = 0
+
+# Runs all necessary functions in order to get results
+def run(p1, p2):
+    # Get Punnett Square results
+    breed_results = breedResults(p1, p2)
+
+    # Translate the morph names to alleles
+    result_alleles = getAllelesFromResults(breed_results)
+
+    # Sort the results
+    sorted = sortPunnettResults(breed_results, result_alleles, 0)
+
+    # Translate back into names
+    names = sortedPunnettToNames(sorted, len(breed_results)) + addNumNormal()
+    final_ouput = "\n"
+    for line in names.splitlines():
+        if line != "":
+            final_ouput = final_ouput + line + "\n\n"
+
+    # Reset data for next calculation
+    clearResults()
+
+    return final_ouput[:-2]
 
 p1 = Snake()
 p2 = Snake()
 
-# For testing
-p1.addMorph(morphs.Morph("caramel", 'R', True))
-p1.addMorph(morphs.Morph("okeetee", 'N'))
-p1.addMorph(morphs.Morph("hypomelanistic", 'R'))
-p2.addMorph(morphs.Morph("tessera", 'D'))
-p2.addMorph(morphs.Morph("caramel", 'R'))
+############### Test Code ###############
 
-bagSnakes(breedResults(p1, p2))
+
+# p1.addMorph(morphs.Morph("amelanistic", 'R', True))
+# p1.addMorph(morphs.Morph("charcoal", 'R', True))
+# p1.addMorph(morphs.Morph("hypomelanistic", 'R'))
+# p2.addMorph(morphs.Morph("lavender", 'R', True))
+# p2.addMorph(morphs.Morph("tessera", 'D'))
+# p2.addMorph(morphs.Morph("caramel", 'R', True))
+
+
+# p1.addMorph(morphs.Morph("amelanistic", 'R', True))
+# p1.addMorph(morphs.Morph("microscale", 'R', True))
+# p1.addMorph(morphs.Morph("keys", 'N'))
+# p2.addMorph(morphs.Morph("amelanistic", 'R', True))
+# p2.addMorph(morphs.Morph("microscale", 'R', True))
+# p2.addMorph(morphs.Morph("okeetee", 'N'))
+
+
+# print(run(p1, p2))
