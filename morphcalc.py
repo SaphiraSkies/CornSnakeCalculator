@@ -46,6 +46,16 @@ class Snake:
             if x.getName == name:
                 return x
 
+    # Removes all data from snake
+    def clearData(self):
+        self.name = ""
+        self.morphs.clear()
+
+
+#######################################
+#   Breeding calculation functions.   #
+#######################################
+
 # Global variables for calculations
 allele_dict = {}
 total_mutated = 0
@@ -216,9 +226,6 @@ def getAllelesFromResults(results):
 def sortPunnettResults(results, alleles, index):
     curr_char = alleles[index]
 
-    if curr_char == "#":
-        return results
-
     upper = curr_char.upper() + curr_char.upper()
     mixed1 = curr_char.lower() + curr_char.upper()
     mixed2 = curr_char.upper() + curr_char.lower()
@@ -310,6 +317,7 @@ def clearResults():
 
 # Runs all necessary functions in order to get results
 def run(p1, p2):
+
     # Get Punnett Square results
     breed_results = breedResults(p1, p2)
 
@@ -331,11 +339,13 @@ def run(p1, p2):
 
     return final_ouput[:-2]
 
+
+############### Test Code ###############
 p1 = Snake()
 p2 = Snake()
 
-############### Test Code ###############
-
+# p1.addMorph(morphs.Morph("okeetee", 'N'))
+# p2.addMorph(morphs.Morph("okeetee", 'N'))
 
 # p1.addMorph(morphs.Morph("amelanistic", 'R', True))
 # p1.addMorph(morphs.Morph("charcoal", 'R', True))
@@ -344,13 +354,10 @@ p2 = Snake()
 # p2.addMorph(morphs.Morph("tessera", 'D'))
 # p2.addMorph(morphs.Morph("caramel", 'R', True))
 
-
 # p1.addMorph(morphs.Morph("amelanistic", 'R', True))
 # p1.addMorph(morphs.Morph("microscale", 'R', True))
 # p1.addMorph(morphs.Morph("keys", 'N'))
 # p2.addMorph(morphs.Morph("amelanistic", 'R', True))
 # p2.addMorph(morphs.Morph("microscale", 'R', True))
-# p2.addMorph(morphs.Morph("okeetee", 'N'))
-
 
 # print(run(p1, p2))

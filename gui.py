@@ -1,3 +1,10 @@
+#######################################################################################
+# Corn Snake Breeding Calculator GUI
+# Name: Hannah Moon
+# Date: 10/25/2021
+# Description: This program runs the GUI for the Corn Snake Breeding Calculator.
+#######################################################################################
+
 from tkinter import *
 from tkinter import messagebox
 from PIL import ImageTk,Image
@@ -25,15 +32,21 @@ morph_names = morphs.getMorphNamesOnly(morphs.all_morphs)
 
 
 # User-related variables
-loggedIn = False        # tracks user login state
-username = ""           # holds username info
-user_snakes_dict = "[]" # holds user's description (list of snakes as dicts), "[]" when empty
-user_snakes_obj = []    # holds user's custom list of snakes as Snake objects
+loggedIn = False            # tracks user login state
+username = ""               # holds username info
+user_snakes_dict = "[]"     # holds user's description (list of snakes as dicts), "[]" when empty
+user_snakes_obj = []        # holds user's custom list of snakes as Snake objects
 
 
 # These numbers are used for placement of morphs on the calculator page
 p1_row = 5
 p2_row = 5
+
+# These are used for storing morph info for calculation
+temp_p1_morphs = []
+temp_p2_morphs = []
+p1_item_list = []
+p2_item_list = []
 
 # These are used for storing morph info to add snakes to collection
 temp_row = 0
@@ -41,10 +54,10 @@ temp_morphs = []
 temp_labels = []
 temp_buttons = []
 
-# These are used for managing some frames
+# These are used for managing some frames in collection
 p1_labels = []
 p2_labels = []
-snakeItemList = []
+snake_item_list = []
 
 
 ############################### Socket Connections ###############################
@@ -55,7 +68,7 @@ snakeItemList = []
 
 # This is used for connecting to the user account server
 # Returns 1 if there's an error connecting
-def connect_to_server():
+def connectToServer():
     try:
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.connect(ADDR)
@@ -90,7 +103,7 @@ def receive(client):
     return response
 
 # This disconnects from the server
-def disconnect_server(conn):
+def disconnectServer(conn):
     print("Client disconnected from server.")
     conn.close()
 
@@ -101,12 +114,11 @@ def disconnect_server(conn):
 #                                                                                   #
 #####################################################################################
 
-
 ######## Menu Navigation Functions ########
 
 # Navigate to home page (calculator)
-def go_home():
-    build_login_frame(0)
+def goHome():
+    buildLoginFrame(0)
 
     glossaryFrame.grid_remove()
     collectionFrame.grid_remove()
@@ -115,8 +127,8 @@ def go_home():
     calcFrame.grid(row=1, column=0)
 
 # Navigate to glossary page
-def go_glossary():
-    build_login_frame(0)
+def goGlossary():
+    buildLoginFrame(0)
 
     calcFrame.grid_remove()
     resultsFrame.grid_remove()
@@ -127,15 +139,15 @@ def go_glossary():
     glossaryFrame.grid(row=1, column=0)
 
 # Navigate to collection page
-def go_collection():
-    build_login_frame(0)
-    clear_frame(collectionFrame, 0)
-    clear_newSnakeFrame_entry()
-    build_newSnake_frame(0)
+def goCollection():
+    buildLoginFrame(0)
+    clearFrame(collectionFrame, 0)
+    clearNewSnakeFrameEntry()
+    buildNewSnakeFrame(0)
 
     global user_snakes_dict
     if user_snakes_dict != "[]":
-        display_collection()
+        displayCollection()
 
     add_snake_selected.set(morph_names[0])
     add_snake_het_val.set(0)
@@ -148,9 +160,9 @@ def go_collection():
     collectionFrame.grid(row=1, column=0)
 
 # Navigate to login page
-def go_login():
-    build_login_frame(0)
-    build_newSnake_frame(0)
+def goLogin():
+    buildLoginFrame(0)
+    buildNewSnakeFrame(0)
 
     calcFrame.grid_remove()
     resultsFrame.grid_remove()
@@ -161,8 +173,8 @@ def go_login():
     loginFrame.grid(row=1, column=0)
 
 # Navigate to logout page
-def go_logout():
-    build_login_frame(0)
+def goLogout():
+    buildLoginFrame(0)
 
     calcFrame.grid_remove()
     resultsFrame.grid_remove()
@@ -176,8 +188,8 @@ def go_logout():
 ######## Home Calculator Functions ########
 
 # Clears and builds the calculator frame
-def build_calc_frame():
-    clear_frame(calcFrame, 0)
+def buildCalcFrame():
+    clearFrame(calcFrame, 0)
 
     title_home.grid(row=0, column=0, columnspan=4)
     calcFrame.grid(row=1, column=0)
@@ -188,81 +200,170 @@ def build_calc_frame():
     add1.grid(row=2, column=0, columnspan=2)
     add2.grid(row=2, column=2, columnspan=2)
     calculate.grid(row=3, column=0, columnspan=4, padx=10, pady=10)
-    p1_label.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
-    p2_label.grid(row=4, column=2, columnspan=2, padx=10, pady=10)
+
+    global temp_p1_morphs
+    global temp_p2_morphs
+
+    if temp_p1_morphs:
+        selectedMorphsFrame_p1.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
+        p1_clear.grid(row=0, column=0, pady=5, columnspan=2)
+    if temp_p2_morphs:
+        selectedMorphsFrame_p2.grid(row=4, column=2, columnspan=2, padx=10, pady=10)
+        p2_clear.grid(row=0, column=0, pady=5, columnspan=2)
 
 # Clears just the p1 or p2 morphs from the calculator
 # Option = 1 for p1, option = 2 for p2
-def clear_calc_column(option):
-    clear_frame(resultsFrame, 1)
+def clearCalcColumn(parent):
+    global temp_p1_morphs
+    global temp_p2_morphs
+    global p1_item_list
+    global p2_item_list
 
-    global p1_row
-    global p2_row
+    if parent == 1:
+        temp_p1_morphs.clear()
+        p1_item_list.clear()
+        selectedMorphsFrame_p1.grid_forget()
+    elif parent == 2:
+        temp_p2_morphs.clear()
+        p2_item_list.clear()
+        selectedMorphsFrame_p2.grid_forget()
 
-    if option == 1:
-        for x in p1_labels:
-            x.grid_forget()
-            p1_row = p1_row - 1
-    elif option == 2:
-        for x in p2_labels:
-            x.grid_forget()
-            p2_row = p2_row - 1
+    buildSelectedMorphsFrames()
 
-# Snake is the snake object, morph is morph name, het is true/false, column is 1 for parent 1 or 2 for parent 2
-def add_morph_to_calc(snake, morph, het, column):
-    # Look up inheritance
-    inherit = ""
+# Adds a selected morph to parent 1 or 2
+def addToCalculator(parent, selected_morph, het):
+    morph_info = [selected_morph, het]
 
-    global p1_labels
-    global p2_labels
+    # Store morph info
+    if parent == 1:
+        global temp_p1_morphs
+        temp_p1_morphs.append(morph_info)
+    elif parent == 2:
+        global temp_p2_morphs
+        temp_p2_morphs.append(morph_info)
 
-    for m in morphs.all_morphs:
-        if m.name == morph:
-            inherit = m.getInheritance()
+    # Refresh selected morph frames
+    buildSelectedMorphsFrames()
 
-    snake.addMorph(morphs.Morph(morph, inherit, het, False))
+# Builds a frame that shows which morphs are selected for the calculator
+# Parent is 1 for left column or 2 for right column
+def buildSelectedMorphsFrames():
+    clearFrame(selectedMorphsFrame_p1, 0)
+    clearFrame(selectedMorphsFrame_p2, 0)
 
-    if column == 1:
-        global p1_row
+    global temp_p1_morphs
+    global temp_p2_morphs
+    global p1_item_list
+    global p2_item_list
 
-        morph_label = Label(calcFrame, text=snake.getMorphNameList()[-1])
-        morph_label.grid(row=p1_row, column=0)
-        # morph_delete = Button(calcFrame, text="X", command=lambda: remove_morph_from_calc(snake, snake.getMorphNameList()[-1]))
-        # morph_delete.grid(row=p1_row, column=1)
-        p1_row = p1_row + 1
-        p1_labels.append(morph_label)
-    elif column == 2:
-        global p2_row
+    # If there are any P1 morphs currently applied...
+    if temp_p1_morphs:
+        selectedMorphsFrame_p1.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
+        p1_clear.grid(row=0, column=0, pady=5, columnspan=2)
 
-        morph_label = Label(calcFrame, text=snake.getMorphNameList()[-1])
-        morph_label.grid(row=p2_row, column=2)
-        # morph_delete = Button(calcFrame, text="X", command=lambda: remove_morph_from_calc(snake, snake.getMorphNameList()[-1]))
-        # morph_delete.grid(row=p2_row, column=3)
-        p2_row = p2_row + 1
-        p2_labels.append(morph_label)
+        # Make a label and deletion button for each one, then display it
+        for i in range(len(temp_p1_morphs)):
+            if temp_p1_morphs[i][1] == True:
+                morph_label = Label(selectedMorphsFrame_p1, text="het " + temp_p1_morphs[i][0])
+            else:
+                morph_label = Label(selectedMorphsFrame_p1, text=temp_p1_morphs[i][0])
+            morph_label.grid(row=i+1, column=0)
 
-# Remove an item from the calculator
-def remove_morph_from_calc(snake, morph_name):
-    pass
+            delete_button = Button(selectedMorphsFrame_p1, text="X", command=lambda i=i: removeMorphFromCalc(1, i))
+            delete_button.grid(row=i+1, column=1)
+
+            items = [morph_label, delete_button]
+            p1_item_list.append(items)
+
+    # If there are any P1 morphs currently applied...
+    if temp_p2_morphs:
+        selectedMorphsFrame_p2.grid(row=4, column=2, columnspan=2, padx=10, pady=10)
+        p2_clear.grid(row=0, column=0, pady=5, columnspan=2)
+
+        # Make a label and deletion button for each one, then display it
+        for i in range(len(temp_p2_morphs)):
+            if temp_p2_morphs[i][1] == True:
+                morph_label = Label(selectedMorphsFrame_p2, text="het " + temp_p2_morphs[i][0])
+            else:
+                morph_label = Label(selectedMorphsFrame_p2, text=temp_p2_morphs[i][0])
+            morph_label.grid(row=i+1, column=0)
+            p2_item_list.append(morph_label)
+
+            delete_button = Button(selectedMorphsFrame_p2, text="X", command=lambda i=i: removeMorphFromCalc(2, i))
+            delete_button.grid(row=i+1, column=1)
+            p2_item_list.append(delete_button)
+
+# Remove a morph from the calculator
+# First arg is 1 or 2 for parent, and i is an item index in temp morph list
+def removeMorphFromCalc(parent, i):
+    global p1_item_list
+    global p2_item_list
+    global temp_p1_morphs
+    global temp_p2_morphs
+
+    if parent == 1:
+        del temp_p1_morphs[i]
+
+        # Adapt if the collection is now empty
+        if not temp_p1_morphs:
+            clearCalcColumn(1)
+    elif parent == 2:
+        del temp_p2_morphs[i]
+
+        # Adapt if the collection is now empty
+        if not temp_p2_morphs:
+            clearCalcColumn(2)
+
+    # Remove GUI objects
+    clearFrame(selectedMorphsFrame_p1, 0)
+    buildSelectedMorphsFrames()
 
 # This clears the breeding results frame from the calc menu
-def clear_results():
-    clear_frame(resultsFrame, 1)
+def clearResults():
+    clearFrame(resultsFrame, 1)
     resultsFrame.grid_forget()
     res_clear.grid_forget()
 
-# This function calculates breeding results
-def calculate_results():
-    clear_frame(resultsFrame, 1)
+# Applies all selected morphs to snakes for calculation
+def applyMorphsToSnakes():
+    global temp_p1_morphs
+    global temp_p2_morphs
 
-    if morphcalc.p1.getMorphObjList() and morphcalc.p2.getMorphObjList():
+    for m in temp_p1_morphs:
+        morph_name = m[0]
+        morph_inheritance = morphs.getInheritanceByName(morph_name)
+        morph_het = m[1]
+
+        morphcalc.p1.addMorph(morphs.Morph(morph_name, morph_inheritance, morph_het))
+
+    for m in temp_p2_morphs:
+        morph_name = m[0]
+        morph_inheritance = morphs.getInheritanceByName(morph_name)
+        morph_het = m[1]
+
+        morphcalc.p2.addMorph(morphs.Morph(morph_name, morph_inheritance, morph_het))
+
+# This function calculates and displays breeding results
+def calculateResults():
+    clearResults()
+
+    global temp_p1_morphs
+    global temp_p2_morphs
+
+    if temp_p1_morphs and temp_p2_morphs:
+        applyMorphsToSnakes()
+
         results = morphcalc.run(morphcalc.p1, morphcalc.p2)
 
         res_clear.grid(row=2, column=0, padx=10, pady=10)
         resultsLabel = Label(resultsFrame, text=results)
         resultsLabel.pack()
         resultsFrame.grid(row=3, column=0)
+
+        morphcalc.p1.clearData()
+        morphcalc.p2.clearData()
     else:
+        clearResults()
         messagebox.showwarning("Error", "You must enter at least one morph for each parent before calculation.")
 
 
@@ -271,7 +372,7 @@ def calculate_results():
 # This is used for constructing a scrollbox within the Glossary frame
 # Code adapted from:
 # https://bytes.com/topic/python/answers/157174-how-get-scrollregion-adjust-w-window-size
-def build_glossary_scrollframe():
+def buildGlossaryScrollframe():
     # Create canvas and scrollbar
     canv = Canvas(glossaryFrame, height=650, width=400)
     vsb = Scrollbar(glossaryFrame, orient="v", command=canv.yview)
@@ -312,16 +413,15 @@ def build_glossary_scrollframe():
 ######## Collection Functions ########
 
 # This builds the frame within the collection page, with an option to display errors
-def build_newSnake_frame(error, str=""):
-    print(".. CALLING BUILD_NEWSNAKE_FRAME ..")
+def buildNewSnakeFrame(error, str=""):
     warning = Label(newSnakeFrame, text="Error: " + str, fg="red")
     global user_snakes_dict
 
     # If there's no error, build the standard newSnakeFrame frame:
     if error == 0:
-        clear_frame(userSnakesFrame, 0)
-        clear_frame(newSnakeFrame, 0)
-        display_collection()
+        clearFrame(userSnakesFrame, 0)
+        clearFrame(newSnakeFrame, 0)
+        displayCollection()
         newSnakeFrame.pack()
         if user_snakes_dict != "[]":
             userSnakesFrame.pack()
@@ -338,9 +438,9 @@ def build_newSnake_frame(error, str=""):
         add_snake_save_button.grid(row=4, column=0, padx=10, pady=10, columnspan=4)
     # Builds the frame with an error message from str parameter
     elif error == 1:
-        clear_frame(userSnakesFrame, 0)
-        clear_frame(newSnakeFrame, 0)
-        display_collection()
+        clearFrame(userSnakesFrame, 0)
+        clearFrame(newSnakeFrame, 0)
+        displayCollection()
         newSnakeFrame.pack()
         if user_snakes_dict != "[]":
             userSnakesFrame.pack()
@@ -358,13 +458,13 @@ def build_newSnake_frame(error, str=""):
         add_snake_save_button.grid(row=5, column=0, padx=10, pady=10, columnspan=4)
 
 # Store chosen morphs in a temp list while creating new snake
-def store_morph(name, het):
+def storeMorph(name, het):
     global temp_morphs
     global temp_labels
     global temp_buttons
     global temp_row
 
-    build_newSnake_frame(0)
+    buildNewSnakeFrame(0)
 
     current_index = temp_row
 
@@ -382,7 +482,7 @@ def store_morph(name, het):
     temp_labels.insert(current_index, new_morph_label)
 
     # Add the option to remove it later
-    remove_morph_button = Button(addSnakeSelectedMorphFrame, text="X Remove", font=('Arial', 8), command=lambda: remove_stored_morph(current_index))
+    remove_morph_button = Button(addSnakeSelectedMorphFrame, text="X Remove", font=('Arial', 8), command=lambda: removeStoredMorph(current_index))
     remove_morph_button.grid(row=temp_row, column=2)
     temp_buttons.insert(current_index, remove_morph_button)
 
@@ -390,35 +490,45 @@ def store_morph(name, het):
     temp_row = temp_row + 1
 
 # This function removes stored morphs while selecting to save a new snake
-def remove_stored_morph(index):
+def removeStoredMorph(index):
     global temp_morphs
     global temp_labels
     global temp_buttons
     global temp_row
-
-    print(f"Removed morph at index {index}")
 
     # Remove morph at index
     temp_morphs[index] = "none"
     temp_labels[index].grid_forget()
     temp_buttons[index].grid_forget()
 
-    if morphs_is_empty():
+    if morphsIsEmpty():
         add_snake_selected_list_empty.grid(row=0, column=0)
 
+# This removes existing data from stored morphs and resets the frame
+def clearStoredMorphs():
+    global temp_row
+    global temp_morphs
+    global temp_labels
+    global temp_buttons
+    temp_row = 0
+    temp_morphs.clear()
+    temp_labels.clear()
+    temp_buttons.clear()
+    clearFrame(addSnakeSelectedMorphFrame, 0)
+    add_snake_selected_list_empty.grid(row=0, column=0)
+
 # Saves the selected snake to the user's account
-def save_snake(name):
+def saveSnake(name):
     global user_snakes_dict
-    print(f".. CALLING SAVE_SNAKE ..")
 
     global temp_morphs
 
-    build_newSnake_frame(0)
+    buildNewSnakeFrame(0)
     userSnakesFrame.pack()
 
     # Either give an error or proceed
-    if morphs_is_empty():
-        build_newSnake_frame(1, "You must select at least one morph.")
+    if morphsIsEmpty():
+        buildNewSnakeFrame(1, "You must select at least one morph.")
     else:
         # Remove any empty slots in temp_morphs
         try:
@@ -435,45 +545,35 @@ def save_snake(name):
             "morphs": snake_morph_list
         }
 
-        # print(f'SAVING SNAKE: {snake["name"]} - {snake["morphs"]}')
-
         if user_snakes_dict == "[]":
             user_snakes_dict = []
 
         # Save this snake to the user's account
         user_snakes_dict.append(snake)
-        description_to_snakes()
-        account_edit(user_snakes_dict)
-        display_collection()
-        clear_newSnakeFrame_entry()
+        descriptionToSnakes()
+        accountEdit(user_snakes_dict)
+        displayCollection()
+        clearNewSnakeFrameEntry()
 
 # Deletes a snake from the user's account
-def delete_snake(snake):
-    print(".. CALLING DELETE_SNAKE ..")
+def deleteSnake(snake):
     global user_snakes_dict
     global user_snakes_obj
 
-    print(f"Deleting snake: {snake}, type {type(snake)}")
-
     # Look for the item in user_names_dict and remove it
-    print(f"User dict before: {user_snakes_dict}")
     for i in range(len(user_snakes_dict)):
         if user_snakes_dict[i] == snake:
             user_snakes_dict.pop(i)
             break
-    print(f"User dict after: {user_snakes_dict}")
 
     # Look for the item in user_names_obj and remove it
-    print(f"User obj before: {user_snakes_obj}")
     for i in range(len(user_snakes_dict)):
         name = user_snakes_obj[i].getName()
         morph_list = user_snakes_obj[i].getMorphNameList()
-        print(f"Name: {name}, morphs: {morph_list}")
         if name == snake["name"]:
             if morph_list == snake["morphs"]:
                 user_snakes_obj.pop(i)
                 break
-    print(f"User obj after: {user_snakes_obj}")
 
     # Adapt if the collection is now empty
     if not user_snakes_dict:
@@ -481,30 +581,15 @@ def delete_snake(snake):
         userSnakesFrame.pack_forget()
 
     # Update user description
-    account_edit(user_snakes_dict)
+    accountEdit(user_snakes_dict)
 
     # Remove GUI objects
-    clear_frame(userSnakesFrame, 0)
-    display_collection()
-
-# This removes existing data from stored morphs and resets the frame
-def clear_stored_morphs():
-    print(f".. CALLING CLEAR_STORED_MORPHS ..")
-
-    global temp_row
-    global temp_morphs
-    global temp_labels
-    global temp_buttons
-    temp_row = 0
-    temp_morphs.clear()
-    temp_labels.clear()
-    temp_buttons.clear()
-    clear_frame(addSnakeSelectedMorphFrame, 0)
-    add_snake_selected_list_empty.grid(row=0, column=0)
+    clearFrame(userSnakesFrame, 0)
+    displayCollection()
 
 # This function tells you whether or not the temp_morph list is empty
 # Returns True if empty, False if not
-def morphs_is_empty():
+def morphsIsEmpty():
     global temp_morphs
 
     no_morphs_found = True
@@ -518,30 +603,26 @@ def morphs_is_empty():
     return no_morphs_found
 
 # This is for clearing saved snake fields
-def clear_newSnakeFrame_entry():
-    print(f".. CALLING CLEAR_NEWSNAKEFRAME_ENTRY ..")
+def clearNewSnakeFrameEntry():
     add_snake_name_entry.delete(0, END)
-    clear_stored_morphs()
+    clearStoredMorphs()
 
-# This function will remove all of a user's snakes
-def delete_collection():
+# This function will remove all of a user's snakes in collection
+def deleteCollection():
     global user_snakes_dict
-    print(f".. CALLING DELETE_COLLECTION ..")
 
     user_snakes_obj.clear()
     if user_snakes_dict != "[]":
         user_snakes_dict.clear()
     user_snakes_dict = "[]"
-    account_edit("[]")
-    clear_frame(userSnakesFrame, 0)
+    accountEdit("[]")
+    clearFrame(userSnakesFrame, 0)
     userSnakesFrame.pack_forget()
 
 # This adds a snake from the user's collection to the morph calculator
 # Parent variable is 1 for p1 (parent #1) or 2 for p2 (parent #2)
-def add_from_collection(snake, parent):
-    print(f"Snake to p{parent}: {snake}")
-
-    clear_calc_column(parent)
+def addFromCollection(snake, parent):
+    clearCalcColumn(parent)
 
     snake_morphs = snake["morphs"].copy()
 
@@ -553,30 +634,28 @@ def add_from_collection(snake, parent):
             het = True
 
         if parent == 1:
-            add_morph_to_calc(morphcalc.p1, snake_morphs[i], het, 1)
+            addToCalculator(1, snake_morphs[i], het)
         elif parent == 2:
-            add_morph_to_calc(morphcalc.p2, snake_morphs[i], het, 2)
+            addToCalculator(2, snake_morphs[i], het)
 
     # Go to calculator
-    go_home()
+    goHome()
 
 # This function displays all the user's snakes on the collection frame
-def display_collection():
+def displayCollection():
     global user_snakes_dict
-
-    print(f".. CALLING DISPLAY_COLLECTION ..")
 
     row = 0
     col = 0
 
     if user_snakes_dict != "[]":
-        nuke_button = Button(userSnakesFrame, text="Delete All", padx=10, pady=10, command=delete_collection)
+        nuke_button = Button(userSnakesFrame, text="Delete All", padx=10, pady=10, command=deleteCollection)
         nuke_button.grid(row=row, column=col, padx=10, pady=10, columnspan=4)
 
         userSnakesRow = 1
         userSnakesCol = -1
 
-        global snakeItemList
+        global snake_item_list
 
         snakeFrameRow = 0
         snakeFrameCol = 0
@@ -597,21 +676,21 @@ def display_collection():
 
             # Button to add this snake to p1 on the calculator
             snakeFrameRow = snakeFrameRow + 1
-            add_to_p1_button = Button(snakeFrame, text="Select as\nParent 1", command=lambda i=i: add_from_collection(user_snakes_dict[i], 1))
+            add_to_p1_button = Button(snakeFrame, text="Select as\nParent 1", command=lambda i=i: addFromCollection(user_snakes_dict[i], 1))
             add_to_p1_button.grid(row=snakeFrameRow, column=snakeFrameCol, padx=5)
 
             # Button to add this snake to p2 on the calculator
             snakeFrameCol = snakeFrameCol + 1
-            add_to_p2_button = Button(snakeFrame, text="Select as\nParent 2", command=lambda i=i: add_from_collection(user_snakes_dict[i], 2))
+            add_to_p2_button = Button(snakeFrame, text="Select as\nParent 2", command=lambda i=i: addFromCollection(user_snakes_dict[i], 2))
             add_to_p2_button.grid(row=snakeFrameRow, column=snakeFrameCol, padx=5)
 
             # Button for deleting this snake
             snakeFrameRow = snakeFrameRow + 1
             snakeFrameCol = snakeFrameCol - 1
-            delete_snake_button = Button(snakeFrame, text="Delete this Snake", command=lambda i=i: delete_snake(user_snakes_dict[i]), padx=10)
+            delete_snake_button = Button(snakeFrame, text="Delete this Snake", command=lambda i=i: deleteSnake(user_snakes_dict[i]), padx=10)
             delete_snake_button.grid(row=snakeFrameRow, column=snakeFrameCol, columnspan=2, padx=5, pady=5)
 
-            # Adjust grid position
+            # Wrap grid position
             if userSnakesCol < 2:
                 userSnakesCol = userSnakesCol + 1
             else:
@@ -620,14 +699,14 @@ def display_collection():
 
             snakeFrame.grid(row=userSnakesRow, column=userSnakesCol, padx=10, pady=10)
 
-            snakeItemList.append(snakeFrame)
-            snakeItemList.append(snakeName)
-            snakeItemList.append(delete_snake_button)
+            snake_item_list.append(snakeFrame)
+            snake_item_list.append(snakeName)
+            snake_item_list.append(delete_snake_button)
 
 # This clears ALL of a user's snakes from the collection frame
-def clear_user_snakes():
-    global snakeItemList
-    for x in snakeItemList:
+def clearUserSnakes():
+    global snake_item_list
+    for x in snake_item_list:
         x.grid_forget()
     userSnakesFrame.pack_forget()
 
@@ -635,13 +714,13 @@ def clear_user_snakes():
 ######## Login Page Functions ########
 
 # This builds the frame within the login page, with an option to display errors
-def build_login_frame(error, str=""):
+def buildLoginFrame(error, str=""):
     warning = Label(loginFrame, text="Error: " + str, fg="red")
-    clear_login_entry()
+    clearLoginEntry()
 
     # If there's no error, build the standard login frame:
     if error == 0:
-        clear_frame(loginFrame, 0)
+        clearFrame(loginFrame, 0)
         title_login.grid(row=0, column=0, columnspan=2)
         username_entry.grid(row=1, column=0)
         un.grid(row=1, column=1)
@@ -651,7 +730,7 @@ def build_login_frame(error, str=""):
         create.grid(row=3, column=1)
     # Builds the frame with an error message from str parameter
     elif error == 1:
-        clear_frame(loginFrame, 0)
+        clearFrame(loginFrame, 0)
         warning.grid(row=0, column=0, columnspan=2)
         title_login.grid(row=1, column=0, columnspan=2)
         username_entry.grid(row=2, column=0)
@@ -662,18 +741,18 @@ def build_login_frame(error, str=""):
         create.grid(row=4, column=1)
 
 # This is for clearing login username/password fields
-def clear_login_entry():
+def clearLoginEntry():
     un.delete(0, END)
     pw.delete(0, END)
 
 # Adjusts the login page after user logs in
 def login():
-    clear_login_entry()
-    build_newSnake_frame(0)
+    clearLoginEntry()
+    buildNewSnakeFrame(0)
 
     global user_snakes_dict
     if user_snakes_dict != "[]":
-        display_collection()
+        displayCollection()
 
     loggedIn = True
 
@@ -686,13 +765,13 @@ def login():
 
 # Adjusts the login page after user logs out
 def logout():
-    clear_login_entry()
-    clear_frame(collectionFrame, 0)
-    clear_user_snakes()
+    clearLoginEntry()
+    clearFrame(collectionFrame, 0)
+    clearUserSnakes()
 
     loggedIn = False
-    build_login_frame(0)
-    build_newSnake_frame(0)
+    buildLoginFrame(0)
+    buildNewSnakeFrame(0)
 
     collectionButton.config(state=DISABLED)
     collectionButton.grid(row=0, column=2)
@@ -705,16 +784,16 @@ def logout():
 ######## Login Server Functions ########
 
 # This function attempts to create an account with username and password
-def account_create(user, pw):
-    client = connect_to_server()
+def accountCreate(user, pw):
+    client = connectToServer()
 
     # If server connection is valid...
     if client != 1:
         # Prevents empty user info
         if user == "":
-            build_login_frame(1, "Username required.")
+            buildLoginFrame(1, "Username required.")
         elif pw == "":
-            build_login_frame(1, "Password required.")
+            buildLoginFrame(1, "Password required.")
         else:
             sendmsg = {
                 "action":"create",
@@ -729,7 +808,7 @@ def account_create(user, pw):
             # Handles error
             if "1" in response:
                 response = json.loads(response)
-                build_login_frame(1, response["1"])
+                buildLoginFrame(1, response["1"])
             # Creation successful
             elif "0" in response:
                 print(f"Account created: {user}")
@@ -737,24 +816,23 @@ def account_create(user, pw):
                 username = user
                 login()
 
-        disconnect_server(client)
+        disconnectServer(client)
 
     # Server ran into an error...
     else:
-        build_login_frame(1, "Could not connect to server.")
+        buildLoginFrame(1, "Could not connect to server.")
 
 # This function attempts to log in with username and password
-def account_submit_login(user, pw):
-    print(f".. CALLING ACCOUNT_SUBMIT_LOGIN ..")
-    client = connect_to_server()
+def accountSubmitLogin(user, pw):
+    client = connectToServer()
 
     # If server connection is valid...
     if client != 1:
         # Prevents empty user info
         if user == "":
-            build_login_frame(1, "Username required.")
+            buildLoginFrame(1, "Username required.")
         elif pw == "":
-            build_login_frame(1, "Password required.")
+            buildLoginFrame(1, "Password required.")
         else:
             sendmsg = {
                 "action":"login",
@@ -768,31 +846,29 @@ def account_submit_login(user, pw):
             # Handles invalid user error
             if "1" in response:
                 response = json.loads(response)
-                build_login_frame(1, "Username does not exist.")
+                buildLoginFrame(1, "Username does not exist.")
             # Handles incorrect password error
             elif "2" in response:
                 response = json.loads(response)
-                build_login_frame(1, response["2"])
+                buildLoginFrame(1, response["2"])
             # Creation successful
             elif "0" in response:
                 print(f"Account logged in: {user}")
                 global username
                 global user_snakes_dict
                 username = user
-                user_snakes_dict = account_retrieve_description()
-                print(f"GOT DESCRIPTION: {user_snakes_dict}, type {type(user_snakes_dict)}")
-                description_to_snakes()
+                user_snakes_dict = accountRetrieveDescription()
+                descriptionToSnakes()
                 login()
 
-        disconnect_server(client)
+        disconnectServer(client)
     # Server ran into an error...
     else:
-        build_login_frame(1, "Could not connect to server.")
+        buildLoginFrame(1, "Could not connect to server.")
 
 # This function attempts to log out of a user's account
-def account_logout():
-    print(f".. CALLING ACCOUNT_LOGOUT ..")
-    client = connect_to_server()
+def accountLogout():
+    client = connectToServer()
 
     # If server connection is valid...
     if client != 1:
@@ -810,7 +886,7 @@ def account_logout():
             global user_snakes_dict
             global user_snakes_obj
 
-            clear_stored_morphs()
+            clearStoredMorphs()
 
             print(f"Account logged out: {username}")
             username = ""
@@ -821,16 +897,15 @@ def account_logout():
                 user_snakes_obj.clear()
             logout()
 
-        disconnect_server(client)
+        disconnectServer(client)
     # Server ran into an error...
     else:
-        print("Error: Could not connect to server.")
+        messagebox.showwarning("Error", "Could not connect to server.")
 
 # This function attempts to update the user's description.
 # This is used to save snakes to the account.
-def account_edit(description):
-    print(f".. CALLING ACCOUNT_EDIT ..")
-    client = connect_to_server()
+def accountEdit(description):
+    client = connectToServer()
 
     # If server connection is valid...
     if client != 1:
@@ -846,19 +921,17 @@ def account_edit(description):
 
         # Edit successful
         if "0" in response:
-            print(f"Updated description for {username}:")
-            print(f"New description: {description}")
+            print(f"Updated description for {username}")
 
-        disconnect_server(client)
+        disconnectServer(client)
     # Server ran into an error...
     else:
-        print("Error: Could not connect to server.")
+        messagebox.showwarning("Error", "Could not connect to server.")
 
 # This function retrieve's a user's account information.
 # It can also be used to return a user's description info.
-def account_retrieve_description():
-    print(f".. CALLING ACCOUNT_DESCRIPTION ..")
-    client = connect_to_server()
+def accountRetrieveDescription():
+    client = connectToServer()
 
     # If server connection is valid...
     if client != 1:
@@ -874,19 +947,19 @@ def account_retrieve_description():
         # Retrieval successful
         if "description" in response:
             response = json.loads(response)
-            disconnect_server(client)
+            disconnectServer(client)
             return response["description"]
 
-        disconnect_server(client)
+        disconnectServer(client)
     # Server ran into an error...
     else:
-        print("Error: Could not connect to server.")
+        messagebox.showwarning("Error", "Could not connect to server.")
 
 
 ######## Other Helper Functions ########
 
 # This can be used to clear a frame, 0 for forget, 1 for detroy
-def clear_frame(frame, setting):
+def clearFrame(frame, setting):
     if setting == 0:
         for widgets in frame.winfo_children():
             widgets.grid_forget()
@@ -895,8 +968,7 @@ def clear_frame(frame, setting):
             widgets.destroy()
 
 # This function converts the user's description to a list of snakes
-def description_to_snakes():
-    print(".. CALLING DESCRIPTION_TO_SNAKES")
+def descriptionToSnakes():
     global user_snakes_dict
     global user_snakes_obj
 
@@ -909,14 +981,12 @@ def description_to_snakes():
 
     # Generate new one
     for x in user_snakes_dict:
-        dict_to_snake(x)
-
-    print(f"OBJ Generated: {user_snakes_obj}")
+        dictToSnake(x)
 
 # This takes a dict, creates a snake object from it, and adds it to the user's list
 # Option is 0 to process the snake straight to the user_snakes_obj list
 # Option 1 will return the snake as an object
-def dict_to_snake(dict, option=0):
+def dictToSnake(dict, option=0):
     global user_snakes_obj
 
     snake = morphcalc.Snake(dict["name"])
@@ -948,6 +1018,8 @@ def dict_to_snake(dict, option=0):
 
 menuFrame = LabelFrame(root, padx=50, pady=5, borderwidth=0, highlightthickness=0)
 calcFrame = LabelFrame(root, width=100, height=100)
+selectedMorphsFrame_p1 = LabelFrame(calcFrame, text="Parent 1")
+selectedMorphsFrame_p2 = LabelFrame(calcFrame, text="Parent 2")
 resultsFrame = LabelFrame(root, text="Results", font=('Arial', 14))
 glossaryFrame = LabelFrame(root)
 collectionFrame = LabelFrame(root)
@@ -959,32 +1031,32 @@ logoutFrame = LabelFrame(root)
 
 ##### Menu Navigation Buttons #####
 
-homeButton = Button(menuFrame, text="Home", width=15, height=1, command=go_home)
-glossaryButton = Button(menuFrame, text="Morph Glossary", width=15, height=1, command=go_glossary)
-loginButton = Button(menuFrame, text="Log In", width=15, height=1, command=go_login)
-collectionButton = Button(menuFrame, text="My Collection", width=15, height=1, command=go_collection)
-logoutButton = Button(menuFrame, text="Log Out", width=15, height=1, command=go_logout)
+homeButton = Button(menuFrame, text="Home", width=15, height=1, command=goHome)
+glossaryButton = Button(menuFrame, text="Morph Glossary", width=15, height=1, command=goGlossary)
+loginButton = Button(menuFrame, text="Log In", width=15, height=1, command=goLogin)
+collectionButton = Button(menuFrame, text="My Collection", width=15, height=1, command=goCollection)
+logoutButton = Button(menuFrame, text="Log Out", width=15, height=1, command=goLogout)
 
 ##### Items for frames #####
 
 # Items for calcFrame
 title_home = Label(calcFrame, text="Morph Calculator", font=('Arial', 20))
-p1_label = Label(calcFrame, text="Parent 1's morphs:")
-p2_label = Label(calcFrame, text="Parent 2's morphs:")
 selected1 = StringVar()
 selected1.set(morph_names[0])
 het1 = IntVar()
 hetCheck1 = Checkbutton(calcFrame, text="Het", variable=het1)
 p1_morphs = OptionMenu(calcFrame, selected1, *morph_names)
-add1 = Button(calcFrame, text="Add", padx=40, command=lambda: add_morph_to_calc(morphcalc.p1, selected1.get(), het1.get(), 1))
+add1 = Button(calcFrame, text="Add", padx=40, command=lambda: addToCalculator(1, selected1.get(), het1.get()))
 selected2 = StringVar()
 selected2.set(morph_names[0])
 p2_morphs = OptionMenu(calcFrame, selected2, *morph_names)
-add2 = Button(calcFrame, text="Add", padx=40, command=lambda: add_morph_to_calc(morphcalc.p2, selected2.get(), het2.get(), 2))
+add2 = Button(calcFrame, text="Add", padx=40, command=lambda: addToCalculator(2, selected2.get(), het2.get()))
 het2 = IntVar()
 hetCheck2 = Checkbutton(calcFrame, text="Het", variable=het2)
-calculate = Button(calcFrame, text="Calculate Results", padx=40, pady=10, command=calculate_results)
-res_clear = Button(root, text="Clear results", command=clear_results)
+calculate = Button(calcFrame, text="Calculate Results", padx=40, pady=10, command=calculateResults)
+p1_clear = Button(selectedMorphsFrame_p1, text="Clear", padx=15, command=lambda: clearCalcColumn(1))
+p2_clear = Button(selectedMorphsFrame_p2, text="Clear", padx=15, command=lambda: clearCalcColumn(2))
+res_clear = Button(root, text="Clear results", command=clearResults)
 
 # Items for glossary
 title_glossary = Label(glossaryFrame, text="Morph List", font=('Arial', 20))
@@ -1003,8 +1075,8 @@ add_snake_morph_menu = OptionMenu(newSnakeFrame, add_snake_selected, *morph_name
 add_snake_het_val = IntVar()
 add_snake_het_val.set(0)
 add_snake_het = Checkbutton(newSnakeFrame, text="Het", variable=add_snake_het_val)
-add_snake_add_button = Button(newSnakeFrame, text="Add morph", command=lambda: store_morph(add_snake_selected.get(), add_snake_het_val.get()))
-add_snake_save_button = Button(newSnakeFrame, text="Save this snake to your account", padx=10, pady=10, command=lambda: save_snake(add_snake_name_entry.get()))
+add_snake_add_button = Button(newSnakeFrame, text="Add morph", command=lambda: storeMorph(add_snake_selected.get(), add_snake_het_val.get()))
+add_snake_save_button = Button(newSnakeFrame, text="Save this snake to your account", padx=10, pady=10, command=lambda: saveSnake(add_snake_name_entry.get()))
 
 # Items for login
 title_login = Label(loginFrame, text="Log in to account: ")
@@ -1012,14 +1084,14 @@ username_entry = Label(loginFrame, text="Username: ")
 un = Entry(loginFrame, width=20)
 password_entry = Label(loginFrame, text="Password: ")
 pw = Entry(loginFrame, show="*", width=20)
-submit = Button(loginFrame, text="Submit", command=lambda: account_submit_login(un.get(), pw.get()))
-create = Button(loginFrame, text="Create Account", command=lambda: account_create(un.get(), pw.get()))
+submit = Button(loginFrame, text="Submit", command=lambda: accountSubmitLogin(un.get(), pw.get()))
+create = Button(loginFrame, text="Create Account", command=lambda: accountCreate(un.get(), pw.get()))
 
 # Items for logout
 confirmation = Label(logoutFrame, text="You are currently logged in.")
 title_logout = Label(logoutFrame, text="Log out of account?")
-yes = Button(logoutFrame, text="Yes", command=account_logout)
-no = Button(logoutFrame, text="No", command=go_home)
+yes = Button(logoutFrame, text="Yes", command=accountLogout)
+no = Button(logoutFrame, text="No", command=goHome)
 
 
 ############################### Display GUI objects ###############################
@@ -1037,19 +1109,19 @@ collectionButton.grid(row=0, column=2)
 loginButton.grid(row=0, column=3)
 
 # Home/Calculator Frame
-build_calc_frame()
+buildCalcFrame()
 
 # Glossary frame
 title_glossary.grid(row=0, column=0)
-build_glossary_scrollframe()
+buildGlossaryScrollframe()
 
 # Collection frame
 title_collection.pack()
 newSnakeFrame.pack()
-build_newSnake_frame(0)
+buildNewSnakeFrame(0)
 
 # Login frame
-build_login_frame(0)
+buildLoginFrame(0)
 
 # Logout frame
 confirmation.grid(row=0, column=0, columnspan=2)
