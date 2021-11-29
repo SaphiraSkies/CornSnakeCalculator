@@ -15,7 +15,7 @@ import socket
 
 ### Build the GUI base
 root = Tk()
-root.geometry("600x800")
+root.geometry("600x900")
 root.title("Corn Snake Morph Calculator")
 root.iconbitmap("favicon.ico")
 
@@ -122,6 +122,7 @@ def goHome():
 
     glossaryFrame.grid_remove()
     collectionFrame.grid_remove()
+    login_msg.grid_remove()
     loginFrame.grid_remove()
     logoutFrame.grid_remove()
     calcFrame.grid(row=1, column=0)
@@ -134,6 +135,7 @@ def goGlossary():
     resultsFrame.grid_remove()
     res_clear.grid_forget()
     collectionFrame.grid_remove()
+    login_msg.grid_remove()
     loginFrame.grid_remove()
     logoutFrame.grid_remove()
     glossaryFrame.grid(row=1, column=0)
@@ -155,6 +157,7 @@ def goCollection():
     resultsFrame.grid_remove()
     res_clear.grid_forget()
     glossaryFrame.grid_remove()
+    login_msg.grid_remove()
     loginFrame.grid_remove()
     logoutFrame.grid_remove()
     collectionFrame.grid(row=1, column=0)
@@ -170,7 +173,8 @@ def goLogin():
     collectionFrame.grid_remove()
     glossaryFrame.grid_remove()
     logoutFrame.grid_remove()
-    loginFrame.grid(row=1, column=0)
+    login_msg.grid(row=1, column=0)
+    loginFrame.grid(row=2, column=0)
 
 # Navigate to logout page
 def goLogout():
@@ -180,6 +184,7 @@ def goLogout():
     resultsFrame.grid_remove()
     res_clear.grid_forget()
     collectionFrame.grid_remove()
+    login_msg.grid_remove()
     loginFrame.grid_remove()
     glossaryFrame.grid_remove()
     logoutFrame.grid(row=1, column=0)
@@ -191,24 +196,27 @@ def goLogout():
 def buildCalcFrame():
     clearFrame(calcFrame, 0)
 
-    title_home.grid(row=0, column=0, columnspan=4)
+    title_home.grid(row=0, column=0, columnspan=3, pady=10, padx=5)
+    help.grid(row=0, column=3)
     calcFrame.grid(row=1, column=0)
-    p1_morphs.grid(row=1, column=0)
-    hetCheck1.grid(row=1, column=1)
-    p2_morphs.grid(row=1, column=2)
-    hetCheck2.grid(row=1, column=3)
-    add1.grid(row=2, column=0, columnspan=2)
-    add2.grid(row=2, column=2, columnspan=2)
-    calculate.grid(row=3, column=0, columnspan=4, padx=10, pady=10)
+    p1_label.grid(row=1, column=0, columnspan=2)
+    p1_morphs.grid(row=2, column=0)
+    hetCheck1.grid(row=2, column=1)
+    p2_label.grid(row=1, column=2, columnspan=2)
+    p2_morphs.grid(row=2, column=2)
+    hetCheck2.grid(row=2, column=3)
+    add1.grid(row=3, column=0, columnspan=2, padx=20)
+    add2.grid(row=3, column=2, columnspan=2, padx=20)
+    calculate.grid(row=4, column=0, columnspan=4, padx=10, pady=20)
 
     global temp_p1_morphs
     global temp_p2_morphs
 
     if temp_p1_morphs:
-        selectedMorphsFrame_p1.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
+        selectedMorphsFrame_p1.grid(row=5, column=0, columnspan=2, padx=10, pady=10)
         p1_clear.grid(row=0, column=0, pady=5, columnspan=2)
     if temp_p2_morphs:
-        selectedMorphsFrame_p2.grid(row=4, column=2, columnspan=2, padx=10, pady=10)
+        selectedMorphsFrame_p2.grid(row=5, column=2, columnspan=2, padx=10, pady=10)
         p2_clear.grid(row=0, column=0, pady=5, columnspan=2)
 
 # Clears just the p1 or p2 morphs from the calculator
@@ -258,7 +266,7 @@ def buildSelectedMorphsFrames():
 
     # If there are any P1 morphs currently applied...
     if temp_p1_morphs:
-        selectedMorphsFrame_p1.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
+        selectedMorphsFrame_p1.grid(row=5, column=0, columnspan=2, padx=10, pady=10)
         p1_clear.grid(row=0, column=0, pady=5, columnspan=2)
 
         # Make a label and deletion button for each one, then display it
@@ -277,7 +285,7 @@ def buildSelectedMorphsFrames():
 
     # If there are any P1 morphs currently applied...
     if temp_p2_morphs:
-        selectedMorphsFrame_p2.grid(row=4, column=2, columnspan=2, padx=10, pady=10)
+        selectedMorphsFrame_p2.grid(row=5, column=2, columnspan=2, padx=10, pady=10)
         p2_clear.grid(row=0, column=0, pady=5, columnspan=2)
 
         # Make a label and deletion button for each one, then display it
@@ -358,13 +366,26 @@ def calculateResults():
         res_clear.grid(row=2, column=0, padx=10, pady=10)
         resultsLabel = Label(resultsFrame, text=results)
         resultsLabel.pack()
-        resultsFrame.grid(row=3, column=0)
+        resultsFrame.grid(row=4, column=0)
 
         morphcalc.p1.clearData()
         morphcalc.p2.clearData()
     else:
         clearResults()
         messagebox.showwarning("Error", "You must enter at least one morph for each parent before calculation.")
+
+# Offers information to the user about calculation
+def helpWithCalc():
+    help_msg = "How to use the Morph Calculator\n\n" \
+               "1. Select a morph from the dropdown menu for each parent snake. Use the checkbox " \
+               "to indicate whether the morph is het (heterozygous) or not.\n\nNote: A 'het' morph may or may not have a " \
+               "visible appearance, depending on the gene's type of inheritance.\n\n" \
+               "2. Select each morph for each parent. Morphs can be cleared or removed individually from the menu." \
+               "\n\n3. Press 'Calculate Results'" \
+               "\n\n4. Breeding results will be displayed below. These are listed by the percentage chance " \
+               "of appearance in a clutch.\n\nKeep in mind that there are no guarantees that you will get any" \
+               " of the given results if it is less than 100%!"
+    messagebox.showinfo(title="Information on Calculations", message=help_msg)
 
 
 ######## Glossary Functions ########
@@ -748,6 +769,7 @@ def clearLoginEntry():
 # Adjusts the login page after user logs in
 def login():
     clearLoginEntry()
+    login_msg.grid_remove()
     buildNewSnakeFrame(0)
 
     global user_snakes_dict
@@ -778,7 +800,8 @@ def logout():
     logoutButton.grid_remove()
     logoutFrame.grid_remove()
     loginButton.grid(row=0, column=3)
-    loginFrame.grid(row=1, column=0)
+    login_msg.grid(row=1, column=0)
+    loginFrame.grid(row=2, column=0)
 
 
 ######## Login Server Functions ########
@@ -1041,6 +1064,12 @@ logoutButton = Button(menuFrame, text="Log Out", width=15, height=1, command=goL
 
 # Items for calcFrame
 title_home = Label(calcFrame, text="Morph Calculator", font=('Arial', 20))
+image = Image.open('question.png')
+image = image.resize((20, 20), Image.ANTIALIAS)
+my_img = ImageTk.PhotoImage(image)
+help = Button(calcFrame, image=my_img, command=helpWithCalc)
+p1_label = Label(calcFrame, text="Select morphs\nfor parent 1:")
+p2_label = Label(calcFrame, text="Select morphs\nfor parent 2:")
 selected1 = StringVar()
 selected1.set(morph_names[0])
 het1 = IntVar()
@@ -1079,6 +1108,7 @@ add_snake_add_button = Button(newSnakeFrame, text="Add morph", command=lambda: s
 add_snake_save_button = Button(newSnakeFrame, text="Save this snake to your account", padx=10, pady=10, command=lambda: saveSnake(add_snake_name_entry.get()))
 
 # Items for login
+login_msg = Label(root, text="Create an account to save snakes from your collection for easy calculation.", padx=10, pady=10)
 title_login = Label(loginFrame, text="Log in to account: ")
 username_entry = Label(loginFrame, text="Username: ")
 un = Entry(loginFrame, width=20)
