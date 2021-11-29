@@ -63,7 +63,15 @@ total_mutated = 0
 # Add a key to the global allele dict
 def addKey(key, val):
     global allele_dict
-    allele_dict[key] = val
+    if key == "##":
+        if "##" in allele_dict:
+            if val not in allele_dict[key]:
+                allele_dict[key].append(val)
+        else:
+            allele_dict[key] = []
+            allele_dict[key].append(val)
+    else:
+        allele_dict[key] = val
 
 # Clear the allele_dict
 def clearDict():
@@ -278,12 +286,23 @@ def sortedPunnettToNames(sorted_results, total_num_results):
 
             # Translate them into English
             for i in range(len(pairs)):
-                pairs[i] = allele_dict[pairs[i]]
+                translation = allele_dict[pairs[i]]
+                # Combine wild type morphs
+                if type(translation) == list:
+                    # Remove "normal" if it's not the only wild type gene
+                    if len(translation) > 1 and "normal" in translation:
+                        translation.remove("normal")
+                    translation = ", ".join(translation)
+                pairs[i] = translation
 
             # Remove any non-mutated alleles
             pairs = list(filter(("no mutation").__ne__, pairs))
             if len(pairs) < 1:
                 return ""
+
+            # Remove normal morph if there are other morphs active
+            if len(pairs) > 1 and "normal" in pairs:
+                pairs.remove("normal")
 
             # Join the results
             complete_pairs = ", ".join(pairs)
