@@ -1108,7 +1108,7 @@ add_snake_add_button = Button(newSnakeFrame, text="Add morph", command=lambda: s
 add_snake_save_button = Button(newSnakeFrame, text="Save this snake to your account", padx=10, pady=10, command=lambda: saveSnake(add_snake_name_entry.get()))
 
 # Items for login
-login_msg = Label(root, text="Create an account to save snakes from your collection for easy calculation.", padx=10, pady=10)
+login_msg = Label(root, text="Create an account to save multiple snakes from your collection for easy calculation.", padx=10, pady=10)
 title_login = Label(loginFrame, text="Log in to account: ")
 username_entry = Label(loginFrame, text="Username: ")
 un = Entry(loginFrame, width=20)
