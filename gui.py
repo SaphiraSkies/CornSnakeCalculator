@@ -7,6 +7,7 @@
 
 from tkinter import *
 from tkinter import messagebox
+from tkinter.messagebox import askyesno
 from PIL import ImageTk,Image
 import morphs
 import morphcalc
@@ -544,13 +545,13 @@ def saveSnake(name):
 
     global temp_morphs
 
-    buildNewSnakeFrame(0)
-    userSnakesFrame.pack()
-
     # Either give an error or proceed
     if morphsIsEmpty():
         buildNewSnakeFrame(1, "You must select at least one morph.")
     else:
+        buildNewSnakeFrame(0)
+        userSnakesFrame.pack()
+
         # Remove any empty slots in temp_morphs
         try:
             while True:
@@ -581,32 +582,36 @@ def deleteSnake(snake):
     global user_snakes_dict
     global user_snakes_obj
 
-    # Look for the item in user_names_dict and remove it
-    for i in range(len(user_snakes_dict)):
-        if user_snakes_dict[i] == snake:
-            user_snakes_dict.pop(i)
-            break
+    msg = "Are you sure you'd like to remove this snake? This action is irreversible."
+    answer = askyesno(title="Confirm deletion", message=msg)
 
-    # Look for the item in user_names_obj and remove it
-    for i in range(len(user_snakes_dict)):
-        name = user_snakes_obj[i].getName()
-        morph_list = user_snakes_obj[i].getMorphNameList()
-        if name == snake["name"]:
-            if morph_list == snake["morphs"]:
-                user_snakes_obj.pop(i)
+    if answer:
+        # Look for the item in user_names_dict and remove it
+        for i in range(len(user_snakes_dict)):
+            if user_snakes_dict[i] == snake:
+                user_snakes_dict.pop(i)
                 break
 
-    # Adapt if the collection is now empty
-    if not user_snakes_dict:
-        user_snakes_dict = "[]"
-        userSnakesFrame.pack_forget()
+        # Look for the item in user_names_obj and remove it
+        for i in range(len(user_snakes_dict)):
+            name = user_snakes_obj[i].getName()
+            morph_list = user_snakes_obj[i].getMorphNameList()
+            if name == snake["name"]:
+                if morph_list == snake["morphs"]:
+                    user_snakes_obj.pop(i)
+                    break
 
-    # Update user description
-    accountEdit(user_snakes_dict)
+        # Adapt if the collection is now empty
+        if not user_snakes_dict:
+            user_snakes_dict = "[]"
+            userSnakesFrame.pack_forget()
 
-    # Remove GUI objects
-    clearFrame(userSnakesFrame, 0)
-    displayCollection()
+        # Update user description
+        accountEdit(user_snakes_dict)
+
+        # Remove GUI objects
+        clearFrame(userSnakesFrame, 0)
+        displayCollection()
 
 # This function tells you whether or not the temp_morph list is empty
 # Returns True if empty, False if not
@@ -632,13 +637,17 @@ def clearNewSnakeFrameEntry():
 def deleteCollection():
     global user_snakes_dict
 
-    user_snakes_obj.clear()
-    if user_snakes_dict != "[]":
-        user_snakes_dict.clear()
-    user_snakes_dict = "[]"
-    accountEdit("[]")
-    clearFrame(userSnakesFrame, 0)
-    userSnakesFrame.pack_forget()
+    msg = "Are you sure you'd like to remove all snakes from your collection? This action is irreversible."
+    answer = askyesno(title="Confirm deletion", message=msg)
+    if answer:
+
+        user_snakes_obj.clear()
+        if user_snakes_dict != "[]":
+            user_snakes_dict.clear()
+        user_snakes_dict = "[]"
+        accountEdit("[]")
+        clearFrame(userSnakesFrame, 0)
+        userSnakesFrame.pack_forget()
 
 # This adds a snake from the user's collection to the morph calculator
 # Parent variable is 1 for p1 (parent #1) or 2 for p2 (parent #2)
@@ -730,6 +739,7 @@ def clearUserSnakes():
     for x in snake_item_list:
         x.grid_forget()
     userSnakesFrame.pack_forget()
+
 
 
 ######## Login Page Functions ########
